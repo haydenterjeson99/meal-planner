@@ -260,12 +260,12 @@
         const JSONBIN_MASTER_KEY = ''; 
         
         // ==========================================
-        // STATE & SMART NUTRITION DATABASE
+        // SMART NUTRITION DATABASE
         // ==========================================
-        // Base protein values are mapped per 1 OUNCE (oz) or standard baseline
+        // Base protein values mapped per 1 OUNCE (oz) or standard baseline
         const nutritionDB = [
-            { keywords: ["chicken", "poultry"], proteinPerOz: 8.8 }, // ~31g per 100g
-            { keywords: ["turkey"], proteinPerOz: 8.0 },
+            { keywords: ["chicken", "poultry"], proteinPerOz: 8.8 }, // ~140g per lb
+            { keywords: ["turkey"], proteinPerOz: 8.0 }, // ~128g per lb
             { keywords: ["beef", "steak", "hamburger"], proteinPerOz: 7.4 },
             { keywords: ["pork", "bacon", "ham"], proteinPerOz: 7.0 },
             { keywords: ["salmon", "tuna", "fish"], proteinPerOz: 7.1 },
@@ -273,7 +273,7 @@
             { keywords: ["rice"], proteinPerOz: 0.8 }, 
             { keywords: ["black bean", "kidney bean", "beans"], proteinPerOz: 2.5 },
             { keywords: ["broccoli", "spinach", "kale"], proteinPerOz: 0.8 },
-            { keywords: ["potato", "yam"], proteinPerOz: 0.6 },
+            { keywords: ["potato", "yam", "sweet potato"], proteinPerOz: 0.5 },
             { keywords: ["cheese", "cheddar", "mozzarella"], proteinPerOz: 6.5 },
             { keywords: ["milk", "yogurt"], proteinPerOz: 1.0 },
             { keywords: ["tofu", "tempeh"], proteinPerOz: 4.5 },
@@ -282,7 +282,7 @@
             { keywords: ["chick pea", "chickpea", "garbanzo"], proteinPerOz: 2.5 }
         ];
 
-        // Multipliers to convert common units into Ounces (oz)
+        // Multipliers to convert common units into Ounces (oz) automatically
         const unitMultipliers = {
             "lb": 16,
             "lbs": 16,
@@ -305,10 +305,10 @@
                 name: "Utility Bowl",
                 servings: 1,
                 ingredients: [
-                    { item: "Rice", qty: 1, unit: "cup", protein: 4.2 },
-                    { item: "Sweet Potato", qty: 3.0, unit: "oz", protein: 1.0 },
-                    { item: "Broccoli", qty: 3.0, unit: "oz", protein: 3.0 },
-                    { item: "Ground Turkey", qty: 1, unit: "lb", protein: 45.0 },
+                    { item: "Rice", qty: 1, unit: "cup", protein: 6.4 },
+                    { item: "Sweet Potato", qty: 3.0, unit: "oz", protein: 1.5 },
+                    { item: "Broccoli", qty: 3.0, unit: "oz", protein: 2.4 },
+                    { item: "Ground Turkey", qty: 1, unit: "lb", protein: 128.0 },
                     { item: "Onion", qty: 1, unit: "whole", protein: 0 },
                     { item: "Garlic", qty: 2, unit: "cloves", protein: 0 }
                 ]
@@ -317,28 +317,28 @@
                 name: "Mexican Bowl",
                 servings: 2,
                 ingredients: [
-                    { item: "Chicken", qty: 1, unit: "lb", protein: 69.5 },
-                    { item: "Cheese", qty: 0.5, unit: "cups", protein: 8.9 },
-                    { item: "Black Beans", qty: 1, unit: "can", protein: 48.0 },
+                    { item: "Chicken", qty: 1, unit: "lb", protein: 140.8 },
+                    { item: "Cheese", qty: 0.5, unit: "cups", protein: 26.0 },
+                    { item: "Black Beans", qty: 1, unit: "can", protein: 37.5 },
                     { item: "Peppers", qty: 2, unit: "whole", protein: 0 },
                     { item: "Onion", qty: 1, unit: "whole", protein: 0 },
                     { item: "Garlic", qty: 2, unit: "cloves", protein: 0 },
                     { item: "Salsa", qty: 0.5, unit: "cups", protein: 0 },
-                    { item: "Spinach", qty: 2, unit: "cups", protein: 0 },
-                    { item: "Rice", qty: 1, unit: "cup", protein: 4.2 },
-                    { item: "Canned Corn", qty: 1, unit: "can", protein: 0 }
+                    { item: "Spinach", qty: 2, unit: "cups", protein: 12.8 },
+                    { item: "Rice", qty: 1, unit: "cup", protein: 6.4 },
+                    { item: "Canned Corn", qty: 1, unit: "can", protein: 13.5 }
                 ]
             },
             {
                 name: "Greek Bowl",
                 servings: 1,
                 ingredients: [
-                    { item: "CousCous", qty: 1, unit: "cup", protein: 0 },
-                    { item: "Chicken", qty: 0.5, unit: "lbs", protein: 34.7 },
-                    { item: "Broccoli", qty: 1, unit: "cup", protein: 3.0 },
-                    { item: "Feta", qty: 0.25, unit: "cups", protein: 4.0 },
+                    { item: "CousCous", qty: 1, unit: "cup", protein: 8.0 },
+                    { item: "Chicken", qty: 0.5, unit: "lbs", protein: 70.4 },
+                    { item: "Broccoli", qty: 1, unit: "cup", protein: 6.4 },
+                    { item: "Feta", qty: 0.25, unit: "cups", protein: 13.0 },
                     { item: "Dill", qty: 1, unit: "tbsp", protein: 0 },
-                    { item: "Chick Peas", qty: 0.5, unit: "can", protein: 5.25 }
+                    { item: "Chick Peas", qty: 0.5, unit: "can", protein: 18.8 }
                 ]
             }
         ];
@@ -378,7 +378,6 @@
                         },
                         body: JSON.stringify(dataToSave)
                     });
-                    if (!response.ok) throw new Error('Cloud sync failed');
                 } catch (error) {
                     console.warn("JSONBin update failed. Relying on local storage.", error);
                 }
@@ -555,6 +554,7 @@
         // ==========================================
         document.getElementById('ingredient-inputs').addEventListener('input', (e) => {
             const tList = e.target.classList;
+            // Listen to Name, Qty, AND Unit changes now
             if (tList.contains('ing-name') || tList.contains('ing-qty') || tList.contains('ing-unit')) {
                 const row = e.target.closest('.ingredient-row');
                 const nameInput = row.querySelector('.ing-name').value;
@@ -566,7 +566,7 @@
                     const calculatedProtein = calculateProtein(nameInput, qtyInput, unitInput);
                     if (calculatedProtein !== null) {
                         proteinInput.value = calculatedProtein;
-                        proteinInput.style.backgroundColor = "#e8f5e9"; // Light green flash
+                        proteinInput.style.backgroundColor = "#e8f5e9"; // Light green flash to show it worked
                         setTimeout(() => proteinInput.style.backgroundColor = "", 1000);
                     }
                 }
