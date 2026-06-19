@@ -5,460 +5,65 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meal Planning Dashboard</title>
     <style>
-        /* Anthropic-inspired Theme */
-        :root {
-            --bg-color: #FAF9F6;
-            --text-color: #1F1F1E;
-            --border-color: #D3CFC2;
-            --accent-bg: #EAE8DF;
-            --btn-bg: #1F1F1E;
-            --btn-text: #FAF9F6;
-            --font-serif: 'Georgia', serif;
-            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            --success: #2e7d32;
-            --error: #c62828;
-        }
-
-        body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-sans); margin: 0; padding: 0; line-height: 1.6; scroll-behavior: smooth; }
-        header { border-bottom: 1px solid var(--border-color); padding: 2rem 1rem; text-align: center; position: relative; }
-        #sync-status { position: absolute; top: 10px; right: 10px; font-size: 0.8rem; color: var(--success); background: var(--accent-bg); padding: 4px 8px; border-radius: 12px; display: none; }
-        h1, h2, h3 { font-family: var(--font-serif); font-weight: normal; margin-top: 0; }
-        h1 { font-size: 2.5rem; letter-spacing: -0.02em; }
-        .container { max-width: 1000px; margin: 0 auto; padding: 2rem 1rem; display: grid; grid-template-columns: 1fr; gap: 3rem; }
-        @media (min-width: 768px) { .container { grid-template-columns: 1fr 1fr; } .full-width { grid-column: 1 / -1; } }
-        .section { background: var(--bg-color); border: 1px solid var(--border-color); padding: 1.5rem; border-radius: 4px; position: relative; }
-        .section-header { border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
-        select, input { width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid var(--border-color); background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-sans); box-sizing: border-box; }
-        
-        button { background-color: var(--btn-bg); color: var(--btn-text); border: none; padding: 0.75rem 1.5rem; font-size: 1rem; cursor: pointer; font-family: var(--font-sans); transition: opacity 0.2s; width: 100%; box-sizing: border-box; margin-bottom: 0.5rem; }
-        button:hover { opacity: 0.8; }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-secondary { background-color: var(--accent-bg); color: var(--text-color); border: 1px solid var(--border-color); }
-        .btn-small { padding: 0.4rem 0.8rem; font-size: 0.85rem; width: auto; margin-bottom: 0; }
-        .btn-danger { background-color: var(--bg-color); color: var(--error); border: 1px solid var(--border-color); }
-        .btn-danger:hover { background-color: #feebee; }
-        
-        ul { list-style-type: none; padding: 0; margin: 0; }
-        li { padding: 0.5rem 0; border-bottom: 1px solid var(--accent-bg); display: flex; justify-content: space-between; align-items: center; }
-        li:last-child { border-bottom: none; }
-        .day-row { display: flex; align-items: center; margin-bottom: 1rem; gap: 1rem; }
-        .day-label { width: 100px; font-weight: 600; }
-        .meal-card { border: 1px solid var(--border-color); padding: 1rem; margin-bottom: 1rem; display: flex; flex-direction: column; justify-content: space-between; }
-        .card-actions { display: flex; gap: 0.5rem; margin-top: 1rem; border-top: 1px solid var(--accent-bg); padding-top: 0.5rem; }
-        .ingredient-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1.5fr; gap: 0.5rem; }
-        .auto-hint { font-size: 0.8em; color: #666; margin-top: -12px; margin-bottom: 12px; display: block; }
-        .nutrition-badge { display: inline-block; background: var(--accent-bg); padding: 4px 8px; border-radius: 4px; font-size: 0.85em; margin-right: 10px; margin-bottom: 10px; }
+        :root { --bg-color: #FAF9F6; --text-color: #1F1F1E; --border-color: #D3CFC2; --accent-bg: #EAE8DF; --btn-bg: #1F1F1E; --btn-text: #FAF9F6; --success: #2e7d32; --error: #c62828; }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; margin: 0; padding: 20px; }
+        #sync-status { padding: 10px; margin-bottom: 20px; border-radius: 5px; font-weight: bold; display: none; }
+        /* Include the rest of your CSS from the previous version here */
     </style>
 </head>
 <body>
-
-    <header>
-        <div id="sync-status">☁️ Cloud Synced</div>
-        <h1>Meal Planner</h1>
-        <p>Trader Joe's Master List & Nutrition Dashboard</p>
-    </header>
-
-    <div class="container">
-        <div class="section">
-            <h2 class="section-header">Weekly Calendar</h2>
-            <div id="calendar"><em>Loading cloud data...</em></div>
-        </div>
-
-        <div class="section">
-            <h2 class="section-header">Master Shopping List</h2>
-            <p style="font-size: 0.9em; color: #555; margin-top: -10px;">Aggregated for Trader Joe's</p>
-            <ul id="shopping-list"></ul>
-        </div>
-
-        <div class="section full-width">
-            <h2 class="section-header">Meal Library & Nutrition Facts</h2>
-            <div id="meal-library" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;"></div>
-        </div>
-
-        <div class="section full-width">
-            <h2 class="section-header" id="form-title">Create Custom Meal</h2>
-            <form id="create-meal-form">
-                <input type="text" id="new-meal-name" placeholder="Meal Name (e.g., Avocado Toast)" required>
-                <input type="number" id="new-meal-servings" placeholder="How many servings does this make? (e.g., 4)" min="0.1" step="0.1" required>
-                
-                <h4>Ingredients</h4>
-                <span class="auto-hint">Tip: Type an ingredient and it will auto-select the unit and calculate protein!</span>
-                <div id="ingredient-inputs"></div>
-                
-                <button type="button" class="btn-secondary" id="add-ingredient-btn" style="margin-bottom: 1.5rem;">+ Add Another Ingredient</button>
-                
-                <div style="display: flex; gap: 1rem;">
-                    <button type="submit" id="save-btn">Save Meal</button>
-                    <button type="button" id="cancel-edit-btn" class="btn-secondary" style="display: none;" onclick="cancelEdit()">Cancel Edit</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <datalist id="known-ingredients">
-        <option value="Ground Beef"><option value="Ground Turkey">
-        <option value="Chicken"><option value="Eggs">
-        <option value="Rice"><option value="Black Beans">
-        <option value="Chick Peas"><option value="Cottage Cheese">
-        <option value="Broccoli"><option value="Cheese">
-        <option value="Sweet Potato"><option value="Olive Oil">
-    </datalist>
-
+    <div id="sync-status"></div>
+    <h1>Meal Planner</h1>
+    
     <script>
         const BIN_ID = "6a34ae6bf5f4af5e290c7fbb"; 
-        const API_KEY = "$2a$10$K/4qZ.EVrpsUy9oNOltH4uNqQCJiNkrUNeHEKVvK4i32I2t2gp042";
+        // Using your Master Key
+        const MASTER_KEY = "$2a$10$f2TkUBvxPmf1nty6gYbGy.ww8tUG5Ox/YS8rvFI5bW6pqjuBdj4gW"; 
         const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
-        
-        const nutritionDb = {
-            "ground beef": { protein: 65, unit: "lbs" },
-            "ground turkey": { protein: 85, unit: "lbs" },
-            "chicken": { protein: 100, unit: "lbs" },
-            "eggs": { protein: 6, unit: "units" },
-            "rice": { protein: 4, unit: "cups" },
-            "black beans": { protein: 24, unit: "cans" },
-            "chick peas": { protein: 21, unit: "cans" },
-            "cottage cheese": { protein: 25, unit: "cups" },
-            "broccoli": { protein: 3, unit: "cups" },
-            "cheese": { protein: 7, unit: "oz" },
-            "sweet potato": { protein: 2, unit: "units" },
-            "olive oil": { protein: 0, unit: "tbsp" }
-        };
-
-        const defaultMeals = [
-            { 
-                name: "Utility Bowl", servings: 6, 
-                ingredients: [{ item: "Rice", qty: 0.84, unit: "cups", protein: 4.2 }, { item: "Sweet Potato", qty: 3, unit: "units", protein: 1 }, { item: "Broccoli", qty: 3, unit: "cups", protein: 3 }, { item: "Ground Turkey", qty: 3, unit: "lbs", protein: 45 }, { item: "Onion", qty: 3, unit: "units", protein: 0 }, { item: "Garlic", qty: 1.5, unit: "units", protein: 0 }] 
-            },
-            { 
-                name: "Mexican Bowl", servings: 6, 
-                ingredients: [{ item: "Chicken", qty: 3, unit: "lbs", protein: 69.5 }, { item: "Cheese", qty: 0.96, unit: "oz", protein: 8.9 }, { item: "Black Beans", qty: 3, unit: "cans", protein: 48 }, { item: "Peppers", qty: 3, unit: "units", protein: 0 }, { item: "Onion", qty: 3, unit: "units", protein: 0 }, { item: "Garlic", qty: 1.5, unit: "units", protein: 0 }, { item: "Salsa", qty: 0.96, unit: "cups", protein: 0 }, { item: "Spinach", qty: 0.96, unit: "cups", protein: 0 }, { item: "Rice", qty: 0.42, unit: "cups", protein: 2.1 }, { item: "Canned Corn", qty: 0.96, unit: "cans", protein: 0 }] 
-            },
-            { 
-                name: "Greek Bowl", servings: 6, 
-                ingredients: [{ item: "CousCous", qty: 1.5, unit: "cups", protein: 0 }, { item: "Chicken", qty: 3, unit: "lbs", protein: 69.5 }, { item: "Broccoli", qty: 0.96, unit: "cups", protein: 0.96 }, { item: "Feta", qty: 1.5, unit: "oz", protein: 0 }, { item: "Dill", qty: 0.96, unit: "units", protein: 0 }, { item: "Chick Peas", qty: 1.5, unit: "cans", protein: 5.25 }] 
-            }
-        ];
-
-        let cloudData = { customMeals: [], plannedMeals: {} };
-        let editingMealName = null; 
-        const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-
-        function showSync(msg, isError = false) {
-            const status = document.getElementById('sync-status');
-            status.textContent = msg;
-            status.style.color = isError ? 'white' : 'var(--success)';
-            status.style.background = isError ? 'var(--error)' : 'var(--accent-bg)';
-            status.style.display = 'block';
-            if (!isError && msg.includes('Synced')) { setTimeout(() => status.style.display = 'none', 3000); }
-        }
-
-        async function fetchFromCloud() {
-            try {
-                showSync("↻ Syncing...");
-                // CHANGED: Using X-Master-Key instead of X-Access-Key to fix save errors
-                const response = await fetch(API_URL, { headers: { 'X-Master-Key': API_KEY } });
-                
-                if (!response.ok) throw new Error("Could not connect to database");
-                
-                const result = await response.json();
-                cloudData = result.record || { customMeals: [], plannedMeals: {} };
-                
-                // If the user's cloud database is totally empty, populate it with the default meals
-                if (!cloudData.customMeals || cloudData.customMeals.length === 0) {
-                    cloudData.customMeals = JSON.parse(JSON.stringify(defaultMeals));
-                    saveToCloud(); // Push defaults to the cloud so they are editable forever
-                }
-                if (!cloudData.plannedMeals) cloudData.plannedMeals = {};
-                
-                renderAll();
-                showSync("☁️ Cloud Synced");
-            } catch (error) {
-                console.error("Error fetching data:", error);
-                if (cloudData.customMeals.length === 0) cloudData.customMeals = defaultMeals;
-                renderAll();
-                showSync("⚠️ Offline Mode (Could not sync)", true);
-            }
-        }
 
         async function saveToCloud() {
             try {
                 showSync("↻ Saving...");
-                // CHANGED: Using X-Master-Key for saving
                 const response = await fetch(API_URL, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'X-Master-Key': MASTER_KEY 
+                    },
                     body: JSON.stringify(cloudData)
                 });
-                if (!response.ok) throw new Error("Failed to save");
+                if (!response.ok) throw new Error("Status: " + response.status);
                 showSync("☁️ Saved to Cloud");
             } catch (error) {
-                console.error("Error saving data:", error);
-                showSync("⚠️ Save Failed", true);
-                alert("Failed to save to cloud. Your changes were only saved locally.");
+                console.error(error);
+                showSync("⚠️ Save Failed: " + error.message, true);
             }
         }
-
-        function renderAll() {
-            renderCalendar();
-            renderMealLibrary();
-            updateShoppingList();
-        }
-
-        function renderCalendar() {
-            const calendarDiv = document.getElementById('calendar');
-            calendarDiv.innerHTML = '';
-            
-            days.forEach(day => {
-                const row = document.createElement('div');
-                row.className = 'day-row';
-                const label = document.createElement('div');
-                label.className = 'day-label';
-                label.textContent = day;
-
-                const select = document.createElement('select');
-                select.innerHTML = `<option value="">-- Select a Meal --</option>`;
-                cloudData.customMeals.forEach(meal => {
-                    const isSelected = (cloudData.plannedMeals && cloudData.plannedMeals[day] === meal.name) ? 'selected' : '';
-                    select.innerHTML += `<option value="${meal.name}" ${isSelected}>${meal.name}</option>`;
+        
+        async function fetchFromCloud() {
+            try {
+                showSync("↻ Syncing...");
+                const response = await fetch(API_URL, { 
+                    headers: { 'X-Master-Key': MASTER_KEY } 
                 });
-
-                select.addEventListener('change', (e) => {
-                    cloudData.plannedMeals[day] = e.target.value;
-                    updateShoppingList();
-                    saveToCloud(); 
-                });
-
-                row.appendChild(label); row.appendChild(select);
-                calendarDiv.appendChild(row);
-            });
-        }
-
-        function renderMealLibrary() {
-            const libraryDiv = document.getElementById('meal-library');
-            libraryDiv.innerHTML = '';
-            
-            cloudData.customMeals.forEach(meal => {
-                const card = document.createElement('div');
-                card.className = 'meal-card';
-                
-                const servings = meal.servings || 1; 
-                const totalProtein = (meal.ingredients || []).reduce((sum, ing) => sum + (Number(ing.protein) || 0), 0);
-                const proteinPerServing = (totalProtein / servings).toFixed(1);
-                
-                let ingredientsHtml = (meal.ingredients || []).map(ing => {
-                    const unit = ing.unit ? ` ${ing.unit}` : '';
-                    return `<li style="font-size: 0.9em; padding: 0.2rem 0;">${ing.item} <span style="color:#666;">(${ing.qty}${unit})</span></li>`;
-                }).join('');
-                
-                card.innerHTML = `
-                    <div>
-                        <h3 style="margin-bottom: 0.5rem;">${meal.name}</h3>
-                        <div style="margin-bottom: 0.5rem;">
-                            <span class="nutrition-badge">Yields: ${servings}</span>
-                            <span class="nutrition-badge" style="background:#e3f2fd;">Protein/Serving: <strong>${proteinPerServing}g</strong></span>
-                        </div>
-                        <ul style="border-top: 1px solid var(--accent-bg); padding-top: 0.5rem;">${ingredientsHtml}</ul>
-                    </div>
-                `;
-
-                const actionsDiv = document.createElement('div');
-                actionsDiv.className = 'card-actions';
-
-                const editBtn = document.createElement('button');
-                editBtn.className = 'btn-secondary btn-small';
-                editBtn.textContent = '✎ Edit';
-                editBtn.onclick = () => loadMealIntoForm(meal);
-
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'btn-danger btn-small';
-                deleteBtn.textContent = '× Delete';
-                deleteBtn.onclick = () => deleteMeal(meal.name);
-
-                actionsDiv.appendChild(editBtn);
-                actionsDiv.appendChild(deleteBtn);
-                card.appendChild(actionsDiv);
-                
-                libraryDiv.appendChild(card);
-            });
-        }
-
-        function updateShoppingList() {
-            const listDiv = document.getElementById('shopping-list');
-            listDiv.innerHTML = '';
-            const shoppingDict = {};
-
-            Object.values(cloudData.plannedMeals || {}).forEach(mealName => {
-                if (!mealName) return;
-                const meal = cloudData.customMeals.find(m => m.name === mealName);
-                if (meal && meal.ingredients) {
-                    meal.ingredients.forEach(ing => {
-                        const name = ing.item.charAt(0).toUpperCase() + ing.item.slice(1).toLowerCase();
-                        const unit = ing.unit || 'units'; 
-                        const key = `${name} (${unit})`;
-                        shoppingDict[key] = (shoppingDict[key] || 0) + Number(ing.qty);
-                    });
-                }
-            });
-
-            const sortedItems = Object.keys(shoppingDict).sort();
-            if (sortedItems.length === 0) {
-                listDiv.innerHTML = '<li>No meals planned yet.</li>';
-                return;
-            }
-            sortedItems.forEach(item => {
-                listDiv.innerHTML += `<li><strong>${item.split(' (')[0]}</strong> <span>${shoppingDict[item].toFixed(2)} ${item.split(' (')[1].replace(')', '')}</span></li>`;
-            });
-        }
-
-        // --- NEW EDITING & DELETING LOGIC ---
-
-        function loadMealIntoForm(meal) {
-            editingMealName = meal.name;
-            document.getElementById('form-title').textContent = `Edit Meal: ${meal.name}`;
-            document.getElementById('new-meal-name').value = meal.name;
-            document.getElementById('new-meal-servings').value = meal.servings || 1;
-
-            const container = document.getElementById('ingredient-inputs');
-            container.innerHTML = ''; 
-
-            meal.ingredients.forEach(ing => addIngredientRow(ing));
-
-            document.getElementById('save-btn').textContent = "Update Meal";
-            document.getElementById('cancel-edit-btn').style.display = "inline-block";
-
-            // Scroll down to the form
-            document.getElementById('form-title').scrollIntoView();
-        }
-
-        function cancelEdit() {
-            editingMealName = null;
-            document.getElementById('form-title').textContent = "Create Custom Meal";
-            document.getElementById('create-meal-form').reset();
-            document.getElementById('ingredient-inputs').innerHTML = '';
-            addIngredientRow();
-            document.getElementById('save-btn').textContent = "Save Meal";
-            document.getElementById('cancel-edit-btn').style.display = "none";
-        }
-
-        function deleteMeal(mealName) {
-            if(confirm(`Are you sure you want to delete "${mealName}"? This will also remove it from your weekly calendar.`)) {
-                cloudData.customMeals = cloudData.customMeals.filter(m => m.name !== mealName);
-                
-                // Clear it out of the calendar if it was scheduled
-                for (let day in cloudData.plannedMeals) {
-                    if (cloudData.plannedMeals[day] === mealName) {
-                        cloudData.plannedMeals[day] = "";
-                    }
-                }
-                
-                saveToCloud();
+                const result = await response.json();
+                cloudData = result.record;
                 renderAll();
+                showSync("☁️ Cloud Synced");
+            } catch (error) {
+                showSync("⚠️ Offline Mode", true);
             }
         }
-
-        // --- FORM INPUT LOGIC ---
-
-        function addIngredientRow(initialData = null) {
-            const container = document.getElementById('ingredient-inputs');
-            const row = document.createElement('div');
-            row.className = 'ingredient-row';
-            
-            row.innerHTML = `
-                <input type="text" class="ing-name" placeholder="Ingredient" list="known-ingredients" required>
-                <input type="number" step="0.01" class="ing-qty" placeholder="Qty" required>
-                <select class="ing-unit">
-                    <option value="units">units</option>
-                    <option value="lbs">lbs</option>
-                    <option value="oz">oz</option>
-                    <option value="cups">cups</option>
-                    <option value="tbsp">tbsp</option>
-                    <option value="tsp">tsp</option>
-                    <option value="grams">grams</option>
-                    <option value="cans">cans</option>
-                </select>
-                <input type="number" step="0.1" class="ing-protein" placeholder="Protein (g)" required>
-            `;
-            
-            const nameInput = row.querySelector('.ing-name');
-            const qtyInput = row.querySelector('.ing-qty');
-            const unitSelect = row.querySelector('.ing-unit');
-            const proteinInput = row.querySelector('.ing-protein');
-
-            // If we are editing, populate the row with data
-            if (initialData) {
-                nameInput.value = initialData.item || '';
-                qtyInput.value = initialData.qty || '';
-                unitSelect.value = initialData.unit || 'units';
-                proteinInput.value = initialData.protein || 0;
-            }
-
-            const handleAutoFill = () => {
-                const name = nameInput.value.toLowerCase().trim();
-                const qty = parseFloat(qtyInput.value);
-                
-                if (name && nutritionDb[name]) {
-                    unitSelect.value = nutritionDb[name].unit;
-                    if (!isNaN(qty)) {
-                        proteinInput.value = (nutritionDb[name].protein * qty).toFixed(1);
-                    }
-                }
-            };
-
-            nameInput.addEventListener('input', handleAutoFill);
-            qtyInput.addEventListener('input', handleAutoFill);
-            container.appendChild(row);
+        
+        function showSync(msg, isError = false) {
+            const status = document.getElementById('sync-status');
+            status.textContent = msg;
+            status.style.display = 'block';
+            status.style.backgroundColor = isError ? '#feebee' : '#e8f5e9';
+            status.style.color = isError ? 'var(--error)' : 'var(--success)';
         }
-
-        document.getElementById('add-ingredient-btn').addEventListener('click', () => addIngredientRow());
-
-        document.getElementById('create-meal-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('save-btn');
-            btn.disabled = true;
-            btn.textContent = "Saving to Cloud...";
-            
-            const name = document.getElementById('new-meal-name').value;
-            const servings = parseFloat(document.getElementById('new-meal-servings').value);
-            
-            const newIngredients = Array.from(document.querySelectorAll('.ingredient-row')).map(row => ({
-                item: row.querySelector('.ing-name').value,
-                qty: parseFloat(row.querySelector('.ing-qty').value),
-                unit: row.querySelector('.ing-unit').value,
-                protein: parseFloat(row.querySelector('.ing-protein').value)
-            }));
-
-            if (editingMealName) {
-                // Find the meal and update it
-                const index = cloudData.customMeals.findIndex(m => m.name === editingMealName);
-                if (index > -1) {
-                    cloudData.customMeals[index] = { name, servings, ingredients: newIngredients };
-                }
-                
-                // If the user changed the name of the meal, update the calendar to reflect the new name
-                if (name !== editingMealName) {
-                    for (let day in cloudData.plannedMeals) {
-                        if (cloudData.plannedMeals[day] === editingMealName) {
-                            cloudData.plannedMeals[day] = name;
-                        }
-                    }
-                }
-            } else {
-                // It's a completely new meal
-                cloudData.customMeals.push({ name, servings, ingredients: newIngredients });
-            }
-
-            await saveToCloud();
-
-            // Reset form back to normal
-            cancelEdit();
-            renderAll();
-            
-            btn.disabled = false;
-        });
-
-        // Initialize App
-        addIngredientRow();
-        fetchFromCloud();
+        
+        // ... (Keep the rest of your JS functions from the previous code block)
     </script>
 </body>
 </html>
