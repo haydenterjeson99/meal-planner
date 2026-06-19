@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meal Planning Dashboard</title>
+    <title>Meal Planning Dashboard 2.0</title>
     <style>
         /* Theme */
         :root {
@@ -15,6 +15,8 @@
             --btn-text: #FAF9F6;
             --danger-bg: #ffeaea;
             --danger-text: #cc0000;
+            --suggestion-bg: #f0f7f4;
+            --suggestion-border: #9ac2af;
             --font-serif: 'Georgia', serif;
             --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
@@ -147,6 +149,26 @@
             border-bottom: none;
         }
 
+        .suggestion-box {
+            background-color: var(--suggestion-bg);
+            border: 1px solid var(--suggestion-border);
+            border-radius: 4px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .suggestion-item {
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px dashed var(--suggestion-border);
+        }
+        .suggestion-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
         /* Specific Layouts */
         .day-row {
             display: flex;
@@ -192,7 +214,6 @@
             margin-bottom: 0;
         }
 
-        /* Utility */
         .muted {
             font-size: 0.9em;
             color: #666;
@@ -202,7 +223,7 @@
 <body>
 
     <header>
-        <h1>Meal Planner</h1>
+        <h1>Meal Planner 2.0</h1>
     </header>
 
     <div class="container">
@@ -214,14 +235,21 @@
 
         <div class="section">
             <h2 class="section-header">Master Shopping List</h2>
-            <ul id="shopping-list">
-                </ul>
+            <ul id="shopping-list"></ul>
+            <div id="total-cost-box" style="margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--border-color); font-weight: bold; font-size: 1.2rem; display: flex; justify-content: space-between;">
+                <span>Estimated Total:</span>
+                <span id="grand-total">$0.00</span>
+            </div>
+            
+            <div class="suggestion-box" id="smart-suggestions-box" style="display: none;">
+                <h4 style="margin: 0 0 0.5rem 0; font-family: var(--font-serif); font-size: 1.1rem;">Smart Dynamic Savings</h4>
+                <div id="suggestions-content"></div>
+            </div>
         </div>
 
         <div class="section full-width">
             <h2 class="section-header">Meal Library & Nutrition Facts</h2>
-            <div id="meal-library" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;">
-                </div>
+            <div id="meal-library" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;"></div>
         </div>
 
         <div class="section full-width">
@@ -260,16 +288,35 @@
         const JSONBIN_MASTER_KEY = ''; 
         
         // ==========================================
-        // SMART NUTRITION DATABASE
+        // TRADER JOE'S PACKAGING & PRICING DATABASE
         // ==========================================
-        // Base protein values mapped per 1 OUNCE (oz) or standard baseline
+        const traderJoesDB = {
+            "rice": { baseUnit: "oz", pkgSize: 32, price: 2.99, label: "TJ's Jasmine Rice (2 lbs)" },
+            "sweet potato": { baseUnit: "oz", pkgSize: 48, price: 4.49, label: "TJ's Sweet Potatoes (3 lb bag)" },
+            "broccoli": { baseUnit: "oz", pkgSize: 12, price: 2.79, label: "TJ's Broccoli Florets (12 oz Bag)" },
+            "ground turkey": { baseUnit: "oz", pkgSize: 16, price: 4.99, label: "TJ's Ground Turkey (1 lb)" },
+            "chicken": { baseUnit: "oz", pkgSize: 16, price: 3.99, label: "TJ's Chicken Breasts (1 lb)" },
+            "cheese": { baseUnit: "oz", pkgSize: 8, price: 2.99, label: "TJ's Shredded Cheddar (8 oz)" },
+            "black beans": { baseUnit: "oz", pkgSize: 15, price: 0.99, label: "TJ's Black Beans (15 oz Can)" },
+            "peppers": { baseUnit: "whole", pkgSize: 3, price: 3.29, label: "TJ's Bell Peppers (3 Pack)" },
+            "onion": { baseUnit: "whole", pkgSize: 6, price: 2.49, label: "TJ's Yellow Onions (Bag of 6)" },
+            "garlic": { baseUnit: "whole", pkgSize: 3, price: 1.49, label: "TJ's Garlic (3 Head Sleeve)" },
+            "salsa": { baseUnit: "oz", pkgSize: 12, price: 2.29, label: "TJ's Fresh Salsa (12 oz)" },
+            "spinach": { baseUnit: "oz", pkgSize: 6, price: 2.49, label: "TJ's Organic Baby Spinach (6 oz Bag)" },
+            "canned corn": { baseUnit: "oz", pkgSize: 15, price: 0.99, label: "TJ's Sweet Corn (15 oz Can)" },
+            "couscous": { baseUnit: "oz", pkgSize: 16, price: 2.49, label: "TJ's Traditional Couscous (16 oz)" },
+            "feta": { baseUnit: "oz", pkgSize: 8, price: 3.99, label: "TJ's Block Feta Cheese (8 oz)" },
+            "dill": { baseUnit: "whole", pkgSize: 1, price: 1.79, label: "TJ's Fresh Dill (1 Bunch)" },
+            "chick peas": { baseUnit: "oz", pkgSize: 15, price: 0.99, label: "TJ's Garbanzo Beans (15 oz Can)" }
+        };
+
         const nutritionDB = [
-            { keywords: ["chicken", "poultry"], proteinPerOz: 8.8 }, // ~140g per lb
-            { keywords: ["turkey"], proteinPerOz: 8.0 }, // ~128g per lb
+            { keywords: ["chicken", "poultry"], proteinPerOz: 8.8 },
+            { keywords: ["turkey"], proteinPerOz: 8.0 },
             { keywords: ["beef", "steak", "hamburger"], proteinPerOz: 7.4 },
             { keywords: ["pork", "bacon", "ham"], proteinPerOz: 7.0 },
             { keywords: ["salmon", "tuna", "fish"], proteinPerOz: 7.1 },
-            { keywords: ["egg"], proteinPerOz: 6.0 }, // Per 1 whole egg
+            { keywords: ["egg"], proteinPerOz: 6.0 },
             { keywords: ["rice"], proteinPerOz: 0.8 }, 
             { keywords: ["black bean", "kidney bean", "beans"], proteinPerOz: 2.5 },
             { keywords: ["broccoli", "spinach", "kale"], proteinPerOz: 0.8 },
@@ -277,27 +324,15 @@
             { keywords: ["cheese", "cheddar", "mozzarella"], proteinPerOz: 6.5 },
             { keywords: ["milk", "yogurt"], proteinPerOz: 1.0 },
             { keywords: ["tofu", "tempeh"], proteinPerOz: 4.5 },
-            { keywords: ["corn"], proteinPerOz: 0.9 },
+            { keywords: ["corn", "canned corn"], proteinPerOz: 0.9 },
             { keywords: ["couscous"], proteinPerOz: 1.0 },
             { keywords: ["chick pea", "chickpea", "garbanzo"], proteinPerOz: 2.5 }
         ];
 
-        // Multipliers to convert common units into Ounces (oz) automatically
         const unitMultipliers = {
-            "lb": 16,
-            "lbs": 16,
-            "pound": 16,
-            "pounds": 16,
-            "oz": 1,
-            "ounce": 1,
-            "g": 0.035274,
-            "gram": 0.035274,
-            "grams": 0.035274,
-            "kg": 35.274,
-            "cup": 8,   // Rough liquid/volume approximation
-            "cups": 8,
-            "can": 15,  // Average standard can size in oz
-            "cans": 15
+            "lb": 16, "lbs": 16, "pound": 16, "pounds": 16,
+            "oz": 1, "ounce": 1, "g": 0.035274, "gram": 0.035274, "grams": 0.035274,
+            "cup": 8, "cups": 8, "can": 15, "cans": 15, "whole": 1, "cloves": 0.2, "tbsp": 0.5
         };
 
         const defaultMeals = [
@@ -346,13 +381,9 @@
         let meals = [...defaultMeals];
         const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
         let plannedMeals = {};
-        
         let isEditing = false;
         let editingMealName = null;
 
-        // ==========================================
-        // DATA SYNC LOGIC
-        // ==========================================
         async function init() {
             await loadData();
             renderCalendar();
@@ -361,32 +392,23 @@
         }
 
         async function saveData() {
-            const dataToSave = {
-                meals: meals, 
-                plannedMeals: plannedMeals
-            };
-            
+            const dataToSave = { meals: meals, plannedMeals: plannedMeals };
             localStorage.setItem('mealPlannerData', JSON.stringify(dataToSave));
-            
             if (JSONBIN_BIN_ID && JSONBIN_MASTER_KEY) {
                 try {
-                    const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+                    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
                         method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Master-Key': JSONBIN_MASTER_KEY
-                        },
+                        headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_MASTER_KEY },
                         body: JSON.stringify(dataToSave)
                     });
                 } catch (error) {
-                    console.warn("JSONBin update failed. Relying on local storage.", error);
+                    console.warn("Sync error", error);
                 }
             }
         }
 
         async function loadData() {
             let data = null;
-            
             if (JSONBIN_BIN_ID && JSONBIN_MASTER_KEY) {
                 try {
                     const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
@@ -397,32 +419,25 @@
                         data = json.record;
                     }
                 } catch (error) {
-                    console.warn("JSONBin load failed. Checking local storage.", error);
+                    console.warn("Load error", error);
                 }
             }
-            
             if (!data) {
                 const localData = localStorage.getItem('mealPlannerData');
                 if (localData) data = JSON.parse(localData);
             }
-            
             if (data) {
                 if (data.meals && data.meals.length > 0) meals = data.meals;
                 if (data.plannedMeals) plannedMeals = data.plannedMeals;
             }
         }
 
-        // ==========================================
-        // UI RENDERING
-        // ==========================================
         function renderCalendar() {
             const calendarDiv = document.getElementById('calendar');
             calendarDiv.innerHTML = '';
-
             days.forEach(day => {
                 const row = document.createElement('div');
                 row.className = 'day-row';
-
                 const label = document.createElement('div');
                 label.className = 'day-label';
                 label.textContent = day;
@@ -449,11 +464,9 @@
         function renderMealLibrary() {
             const libraryDiv = document.getElementById('meal-library');
             libraryDiv.innerHTML = '';
-
             meals.forEach(meal => {
                 const card = document.createElement('div');
                 card.className = 'meal-card';
-                
                 const totalProtein = meal.ingredients.reduce((sum, ing) => sum + (Number(ing.protein) || 0), 0).toFixed(1);
                 
                 let ingredientsHtml = meal.ingredients.map(ing => 
@@ -482,45 +495,151 @@
             });
         }
 
+        // ==========================================
+        // CORE LOGIC: PRICING & ZERO-WASTE SUGGESTIONS
+        // ==========================================
         function updateShoppingList() {
             const listDiv = document.getElementById('shopping-list');
             listDiv.innerHTML = '';
 
-            const shoppingDict = {};
+            const ingredientTotals = {}; 
+            let activePlannedMeals = Object.values(plannedMeals).filter(Boolean);
 
-            Object.values(plannedMeals).forEach(mealName => {
-                if (!mealName) return;
-                const meal = meals.find(m => m.name === mealName);
-                if (meal) {
-                    meal.ingredients.forEach(ing => {
-                        const name = ing.item.charAt(0).toUpperCase() + ing.item.slice(1).toLowerCase();
-                        const unit = (ing.unit || "").toLowerCase().trim();
-                        const key = name + "|" + unit; 
-                        
-                        if (shoppingDict[key]) {
-                            shoppingDict[key].qty += Number(ing.qty);
-                        } else {
-                            shoppingDict[key] = {
-                                name: name,
-                                unit: unit,
-                                qty: Number(ing.qty)
-                            };
-                        }
-                    });
-                }
-            });
-
-            const sortedKeys = Object.keys(shoppingDict).sort();
-
-            if (sortedKeys.length === 0) {
+            if (activePlannedMeals.length === 0) {
                 listDiv.innerHTML = '<li>No meals planned yet.</li>';
+                document.getElementById('grand-total').textContent = '$0.00';
+                document.getElementById('smart-suggestions-box').style.display = 'none';
                 return;
             }
 
-            sortedKeys.forEach(key => {
-                const item = shoppingDict[key];
-                listDiv.innerHTML += `<li><strong>${item.name}</strong> <span class="muted">${item.qty % 1 === 0 ? item.qty : item.qty.toFixed(2)} ${item.unit}</span></li>`;
+            // 1. Calculate required recipe base units needed
+            activePlannedMeals.forEach(mealName => {
+                const meal = meals.find(m => m.name === mealName);
+                if (!meal) return;
+                
+                meal.ingredients.forEach(ing => {
+                    const normalizedName = ing.item.toLowerCase().trim();
+                    const unit = (ing.unit || "").toLowerCase().trim();
+                    const multiplier = unitMultipliers[unit] || 1;
+                    const qtyInBaseUnits = Number(ing.qty) * multiplier;
+
+                    if (ingredientTotals[normalizedName]) {
+                        ingredientTotals[normalizedName] += qtyInBaseUnits;
+                    } else {
+                        ingredientTotals[normalizedName] = qtyInBaseUnits;
+                    }
+                });
             });
+
+            let grandTotal = 0;
+            const surplusTracker = {};
+
+            // 2. Cross-reference with Trader Joe's database and generate UI list items
+            Object.keys(ingredientTotals).sort().forEach(name => {
+                const totalNeeded = ingredientTotals[name];
+                const tjData = traderJoesDB[name];
+                
+                let lineItemHtml = '';
+                
+                if (tjData) {
+                    const packagesNeeded = Math.ceil(totalNeeded / tjData.pkgSize);
+                    const itemCost = packagesNeeded * tjData.price;
+                    grandTotal += itemCost;
+                    
+                    const totalVolumeBought = packagesNeeded * tjData.pkgSize;
+                    const leftoverVolume = totalVolumeBought - totalNeeded;
+                    surplusTracker[name] = { surplus: leftoverVolume, baseUnit: tjData.baseUnit };
+
+                    lineItemHtml = `
+                        <li>
+                            <div>
+                                <strong>${tjData.label}</strong><br>
+                                <span class="muted">Need: ${totalNeeded.toFixed(1)} ${tjData.baseUnit} | Buying: ${packagesNeeded} pkg(s)</span>
+                            </div>
+                            <span style="font-family: var(--font-serif); font-weight: bold;">$${itemCost.toFixed(2)}</span>
+                        </li>`;
+                } else {
+                    // Fallback for missing custom items
+                    lineItemHtml = `
+                        <li>
+                            <div><strong>${name.charAt(0).toUpperCase() + name.slice(1)}</strong></div>
+                            <span class="muted">${totalNeeded.toFixed(1)} unit(s)</span>
+                        </li>`;
+                }
+                listDiv.innerHTML += lineItemHtml;
+            });
+
+            document.getElementById('grand-total').textContent = `$${grandTotal.toFixed(2)}`;
+            generateSmartSuggestions(surplusTracker, ingredientTotals);
+        }
+
+        function generateSmartSuggestions(surplusTracker, ingredientTotals) {
+            const suggestionsDiv = document.getElementById('suggestions-content');
+            suggestionsDiv.innerHTML = '';
+            let foundSuggestions = false;
+
+            const activePlannedMeals = Object.values(plannedMeals).filter(Boolean);
+            const unplannedMeals = meals.filter(m => !activePlannedMeals.includes(m.name));
+
+            // Strategy A: Leftover Optimization (Zero Waste)
+            unplannedMeals.forEach(meal => {
+                let usesSurplus = false;
+                let details = [];
+
+                meal.ingredients.forEach(ing => {
+                    const normalizedName = ing.item.toLowerCase().trim();
+                    const multiplier = unitMultipliers[ing.unit.toLowerCase().trim()] || 1;
+                    const neededBase = ing.qty * multiplier;
+
+                    if (surplusTracker[normalizedName] && surplusTracker[normalizedName].surplus >= neededBase) {
+                        usesSurplus = true;
+                        details.push(`${ing.item} (${surplusTracker[normalizedName].surplus.toFixed(1)} ${surplusTracker[normalizedName].baseUnit} left over)`);
+                    }
+                });
+
+                if (usesSurplus && details.length > 0) {
+                    foundSuggestions = true;
+                    suggestionsDiv.innerHTML += `
+                        <div class="suggestion-item">
+                            ♻️ <strong>Zero-Waste Alert:</strong> You have enough extra package surplus to build a <strong>${meal.name}</strong> without buying extra packages of: <em>${details.join(', ')}</em>!
+                        </div>`;
+                }
+            });
+
+            // Strategy B: Upsell Nudge ("Add 1 item for $X")
+            unplannedMeals.forEach(meal => {
+                let missingItemsCost = 0;
+                let missingItemsCount = 0;
+                let missingLabels = [];
+
+                meal.ingredients.forEach(ing => {
+                    const normalizedName = ing.item.toLowerCase().trim();
+                    const multiplier = unitMultipliers[ing.unit.toLowerCase().trim()] || 1;
+                    const neededBase = ing.qty * multiplier;
+
+                    const totalInCart = ingredientTotals[normalizedName] || 0;
+                    const currentSurplus = surplusTracker[normalizedName] ? surplusTracker[normalizedName].surplus : 0;
+
+                    if (totalInCart === 0 || currentSurplus < neededBase) {
+                        const tjData = traderJoesDB[normalizedName];
+                        if (tjData) {
+                            missingItemsCost += tjData.price;
+                            missingItemsCount++;
+                            missingLabels.push(tjData.label);
+                        }
+                    }
+                });
+
+                if (missingItemsCount > 0 && missingItemsCount <= 2 && missingItemsCost <= 6.00) {
+                    foundSuggestions = true;
+                    suggestionsDiv.innerHTML += `
+                        <div class="suggestion-item">
+                            💡 <strong>Smart Upgrade:</strong> Add just <strong>${missingLabels.join(' and ')}</strong> for an extra <strong>$${missingItemsCost.toFixed(2)}</strong> to cook a brand new <strong>${meal.name}</strong>!
+                        </div>`;
+                }
+            });
+
+            document.getElementById('smart-suggestions-box').style.display = foundSuggestions ? 'block' : 'none';
         }
 
         // ==========================================
@@ -529,32 +648,21 @@
         function calculateProtein(name, qty, unit) {
             name = name.toLowerCase().trim();
             unit = unit.toLowerCase().trim();
-            
-            // 1. Find the ingredient in DB via keyword matching
-            const foodItem = nutritionDB.find(dbItem => 
-                dbItem.keywords.some(keyword => name.includes(keyword))
-            );
-            
-            if (!foodItem) return null; // Unrecognized item
+            const foodItem = nutritionDB.find(dbItem => dbItem.keywords.some(keyword => name.includes(keyword)));
+            if (!foodItem) return null;
 
-            // 2. Convert unit to ounces (default to 1 multiplier if unit unknown)
             const multiplier = unitMultipliers[unit] || 1; 
-
-            // 3. Special case for whole items like "1 egg"
             if (unit === "whole" || unit === "") {
                 return (foodItem.proteinPerOz * qty).toFixed(1);
             }
-
-            // 4. Calculate: (Qty * UnitConversion) * Protein per Oz
             return (qty * multiplier * foodItem.proteinPerOz).toFixed(1);
         }
 
         // ==========================================
-        // CRUD ACTIONS & EVENT LISTENERS
+        // FORM & CRUD INTERACTIONS
         // ==========================================
         document.getElementById('ingredient-inputs').addEventListener('input', (e) => {
             const tList = e.target.classList;
-            // Listen to Name, Qty, AND Unit changes now
             if (tList.contains('ing-name') || tList.contains('ing-qty') || tList.contains('ing-unit')) {
                 const row = e.target.closest('.ingredient-row');
                 const nameInput = row.querySelector('.ing-name').value;
@@ -566,7 +674,7 @@
                     const calculatedProtein = calculateProtein(nameInput, qtyInput, unitInput);
                     if (calculatedProtein !== null) {
                         proteinInput.value = calculatedProtein;
-                        proteinInput.style.backgroundColor = "#e8f5e9"; // Light green flash to show it worked
+                        proteinInput.style.backgroundColor = "#e8f5e9";
                         setTimeout(() => proteinInput.style.backgroundColor = "", 1000);
                     }
                 }
@@ -589,13 +697,9 @@
         window.deleteMeal = async function(mealName) {
             if(confirm(`Are you sure you want to delete ${mealName}?`)) {
                 meals = meals.filter(m => m.name !== mealName);
-                
                 for (const day in plannedMeals) {
-                    if (plannedMeals[day] === mealName) {
-                        plannedMeals[day] = "";
-                    }
+                    if (plannedMeals[day] === mealName) plannedMeals[day] = "";
                 }
-                
                 await saveData();
                 renderCalendar();
                 renderMealLibrary();
@@ -630,7 +734,6 @@
                 `;
                 container.appendChild(row);
             });
-            
             window.scrollTo({ top: document.getElementById('create-meal-form').offsetTop - 50, behavior: 'smooth' });
         };
 
@@ -654,7 +757,6 @@
 
         document.getElementById('create-meal-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             const name = document.getElementById('new-meal-name').value;
             const servings = parseInt(document.getElementById('new-meal-servings').value) || 1;
             const ingredientRows = document.querySelectorAll('.ingredient-row');
@@ -674,12 +776,9 @@
             if (isEditing) {
                 const index = meals.findIndex(m => m.name === editingMealName);
                 if (index !== -1) meals[index] = newMeal;
-                
                 if (name !== editingMealName) {
                     for (const day in plannedMeals) {
-                        if (plannedMeals[day] === editingMealName) {
-                            plannedMeals[day] = name;
-                        }
+                        if (plannedMeals[day] === editingMealName) plannedMeals[day] = name;
                     }
                 }
             } else {
@@ -693,7 +792,7 @@
             updateShoppingList();
         });
 
-        // Start App
+        // Initialize 2.0 Engine
         init();
     </script>
 </body>
