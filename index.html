@@ -3,65 +3,637 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meal Planner</title>
+    <title>Meal Planning Dashboard</title>
     <style>
-        /* (Keep your existing CSS here) */
+        /* Theme */
+        :root {
+            --bg-color: #FAF9F6;
+            --text-color: #1F1F1E;
+            --border-color: #D3CFC2;
+            --accent-bg: #EAE8DF;
+            --btn-bg: #1F1F1E;
+            --btn-text: #FAF9F6;
+            --danger-bg: #ffeaea;
+            --danger-text: #cc0000;
+            --font-serif: 'Georgia', serif;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-sans);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 2rem 1rem;
+            text-align: center;
+        }
+
+        h1, h2, h3 {
+            font-family: var(--font-serif);
+            font-weight: normal;
+            margin-top: 0;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 3rem;
+        }
+
+        @media (min-width: 768px) {
+            .container {
+                grid-template-columns: 1fr 1fr;
+            }
+            .full-width {
+                grid-column: 1 / -1;
+            }
+        }
+
+        .section {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            border-radius: 4px;
+        }
+
+        .section-header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Forms & Inputs */
+        select, input {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-sans);
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: var(--btn-bg);
+            color: var(--btn-text);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            font-family: var(--font-sans);
+            transition: opacity 0.2s;
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        .btn-secondary {
+            background-color: var(--accent-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-bg);
+            color: var(--danger-text);
+            border: 1px solid #ffcccc;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        /* Lists */
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--accent-bg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        li:last-child {
+            border-bottom: none;
+        }
+
+        /* Specific Layouts */
+        .day-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            gap: 1rem;
+        }
+
+        .day-label {
+            width: 100px;
+            font-weight: 600;
+        }
+
+        .meal-card {
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .ingredient-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 0.5rem;
+            align-items: start;
+        }
+        
+        /* Utility */
+        .muted {
+            font-size: 0.9em;
+            color: #666;
+        }
     </style>
 </head>
 <body>
-    <div id="sync-status"></div>
-    <script>
-        const BIN_ID = "6a34ae6bf5f4af5e290c7fbb"; 
-        const MASTER_KEY = "$2a$10$f2TkUBvxPmf1nty6gYbGy.ww8tUG5Ox/YS8rvFI5bW6pqjuBdj4gW"; 
-        const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
-        // SAFETY SHIELD: Initialize with defaults immediately
-        let cloudData = { 
-            customMeals: [
-                { name: "Utility Bowl", servings: 6, ingredients: [{item: "Rice", qty: 0.84, unit: "cups", protein: 4.2}] },
-                { name: "Mexican Bowl", servings: 6, ingredients: [{item: "Chicken", qty: 3, unit: "lbs", protein: 69.5}] }
-            ], 
-            plannedMeals: {} 
+    <header>
+        <h1>Meal Planner</h1>
+        <p>Trader Joe's Master List & Nutrition Dashboard</p>
+    </header>
+
+    <div class="container">
+        
+        <!-- WEEKLY PLANNER SECTION -->
+        <div class="section">
+            <h2 class="section-header">Weekly Calendar</h2>
+            <div id="calendar"></div>
+        </div>
+
+        <!-- SHOPPING LIST SECTION -->
+        <div class="section">
+            <div class="section-header">
+                <h2 style="margin: 0;">Master Shopping List</h2>
+            </div>
+            
+            <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem; background: var(--accent-bg); padding: 10px; border-radius: 4px;">
+                <label for="serving-multiplier" style="font-weight: bold; white-space: nowrap;">Household Servings:</label>
+                <input type="number" id="serving-multiplier" value="1" min="1" style="margin-bottom: 0; padding: 0.5rem;">
+            </div>
+
+            <ul id="shopping-list">
+                <!-- Generated via JS -->
+            </ul>
+        </div>
+
+        <!-- MEAL LIBRARY & NUTRITION -->
+        <div class="section full-width">
+            <h2 class="section-header">Meal Library & Nutrition Facts</h2>
+            <div id="meal-library" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;">
+                <!-- Generated via JS -->
+            </div>
+        </div>
+
+        <!-- CREATE/EDIT CUSTOM MEAL SECTION -->
+        <div class="section full-width">
+            <h2 class="section-header" id="form-title">Create Custom Meal</h2>
+            <form id="create-meal-form">
+                <input type="text" id="new-meal-name" placeholder="Meal Name (e.g., Avocado Toast)" required>
+                
+                <h4 style="margin-bottom: 0.5rem;">Ingredients <span class="muted" style="font-weight: normal;">(Protein auto-calculates for known items)</span></h4>
+                <div id="ingredient-inputs">
+                    <div class="ingredient-row">
+                        <input type="text" class="ing-name" placeholder="Ingredient (e.g., Chicken)" required>
+                        <input type="number" step="0.1" class="ing-qty" placeholder="Qty" required>
+                        <input type="number" step="0.1" class="ing-protein" placeholder="Protein (g)" required>
+                    </div>
+                </div>
+                
+                <button type="button" class="btn-secondary" id="add-ingredient-btn" style="margin-bottom: 1rem;">+ Add Another Ingredient</button>
+                <div class="btn-group">
+                    <button type="submit" id="submit-meal-btn">Save Meal</button>
+                    <button type="button" class="btn-secondary" id="cancel-edit-btn" style="display: none;" onclick="cancelEdit()">Cancel Edit</button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+
+    <script>
+        // ==========================================
+        // CONFIGURATION (Fill these in for Cloud Sync)
+        // ==========================================
+        const JSONBIN_BIN_ID = ''; // e.g., '65b12345...'
+        const JSONBIN_MASTER_KEY = ''; // e.g., '$2a$10$...'
+        
+        // ==========================================
+        // STATE & NUTRITION DATABASE
+        // ==========================================
+        const nutritionDB = {
+            "chicken": { proteinPerUnit: 23.1 },  // per oz
+            "ground turkey": { proteinPerUnit: 45.0 }, // per serving
+            "rice": { proteinPerUnit: 4.2 },
+            "black beans": { proteinPerUnit: 16.0 },
+            "broccoli": { proteinPerUnit: 3.0 },
+            "sweet potato": { proteinPerUnit: 1.0 },
+            "cheese": { proteinPerUnit: 8.9 }
         };
 
-        async function fetchFromCloud() {
-            try {
-                const response = await fetch(API_URL, { headers: { 'X-Master-Key': MASTER_KEY } });
-                const result = await response.json();
-                
-                // If cloud data exists and is valid, use it
-                if (result.record && result.record.customMeals) {
-                    cloudData = result.record;
-                } else {
-                    // Otherwise, force save the defaults
-                    saveToCloud();
+        const defaultMeals = [
+            {
+                name: "Utility Bowl", isCustom: false,
+                ingredients: [
+                    { item: "Rice", qty: 0.84, protein: 4.2 },
+                    { item: "Sweet Potato", qty: 3.0, protein: 1.0 },
+                    { item: "Broccoli", qty: 3.0, protein: 3.0 },
+                    { item: "Ground Turkey", qty: 3.0, protein: 45.0 },
+                    { item: "Onion", qty: 3.0, protein: 0 },
+                    { item: "Garlic", qty: 1.5, protein: 0 }
+                ]
+            },
+            {
+                name: "Mexican Bowl", isCustom: false,
+                ingredients: [
+                    { item: "Chicken", qty: 3.0, protein: 69.5 },
+                    { item: "Cheese", qty: 0.96, protein: 8.9 },
+                    { item: "Black Beans", qty: 3.0, protein: 48.0 },
+                    { item: "Peppers", qty: 3.0, protein: 0 },
+                    { item: "Onion", qty: 3.0, protein: 0 },
+                    { item: "Garlic", qty: 1.5, protein: 0 },
+                    { item: "Salsa", qty: 0.96, protein: 0 },
+                    { item: "Spinach", qty: 0.96, protein: 0 },
+                    { item: "Rice", qty: 0.42, protein: 2.1 },
+                    { item: "Canned Corn", qty: 0.96, protein: 0 }
+                ]
+            },
+            {
+                name: "Greek Bowl", isCustom: false,
+                ingredients: [
+                    { item: "CousCous", qty: 1.5, protein: 0 },
+                    { item: "Chicken", qty: 3.0, protein: 69.5 },
+                    { item: "Broccoli", qty: 0.96, protein: 0.96 },
+                    { item: "Feta", qty: 1.5, protein: 0 },
+                    { item: "Dill", qty: 0.96, protein: 0 },
+                    { item: "Chick Peas", qty: 1.5, protein: 5.25 }
+                ]
+            }
+        ];
+
+        let meals = [...defaultMeals];
+        const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+        let plannedMeals = {};
+        
+        let isEditing = false;
+        let editingMealName = null;
+
+        // ==========================================
+        // DATA SYNC LOGIC (Cloud + Local Fallback)
+        // ==========================================
+        async function init() {
+            await loadData();
+            renderCalendar();
+            renderMealLibrary();
+            updateShoppingList();
+        }
+
+        async function saveData() {
+            const dataToSave = {
+                meals: meals.filter(m => m.isCustom), // Only save custom meals
+                plannedMeals: plannedMeals
+            };
+            
+            // 1. Always save to local storage (Offline Fallback)
+            localStorage.setItem('mealPlannerData', JSON.stringify(dataToSave));
+            
+            // 2. Try saving to Cloud if keys exist
+            if (JSONBIN_BIN_ID && JSONBIN_MASTER_KEY) {
+                try {
+                    const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Master-Key': JSONBIN_MASTER_KEY
+                        },
+                        body: JSON.stringify(dataToSave)
+                    });
+                    if (!response.ok) throw new Error('Cloud sync failed');
+                } catch (error) {
+                    console.warn("JSONBin update failed. Relying on local storage.", error);
                 }
-                renderAll();
-                showSync("☁️ Cloud Synced");
-            } catch (error) {
-                renderAll(); // Fallback to local default state
-                showSync("⚠️ Offline Mode", true);
             }
         }
 
-        async function saveToCloud() {
-            try {
-                // Ensure data structure exists before saving
-                if(!cloudData.customMeals) cloudData.customMeals = [];
-                if(!cloudData.plannedMeals) cloudData.plannedMeals = {};
-                
-                await fetch(API_URL, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': MASTER_KEY },
-                    body: JSON.stringify(cloudData)
+        async function loadData() {
+            let data = null;
+            
+            // 1. Try fetching from Cloud
+            if (JSONBIN_BIN_ID && JSONBIN_MASTER_KEY) {
+                try {
+                    const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+                        headers: { 'X-Master-Key': JSONBIN_MASTER_KEY }
+                    });
+                    if (response.ok) {
+                        const json = await response.json();
+                        data = json.record;
+                    }
+                } catch (error) {
+                    console.warn("JSONBin load failed. Checking local storage.", error);
+                }
+            }
+            
+            // 2. Fallback to Local Storage
+            if (!data) {
+                const localData = localStorage.getItem('mealPlannerData');
+                if (localData) data = JSON.parse(localData);
+            }
+            
+            // 3. Apply Data
+            if (data) {
+                if (data.meals) meals = [...defaultMeals, ...data.meals];
+                if (data.plannedMeals) plannedMeals = data.plannedMeals;
+            }
+        }
+
+        // ==========================================
+        // UI RENDERING
+        // ==========================================
+        function renderCalendar() {
+            const calendarDiv = document.getElementById('calendar');
+            calendarDiv.innerHTML = '';
+
+            days.forEach(day => {
+                const row = document.createElement('div');
+                row.className = 'day-row';
+
+                const label = document.createElement('div');
+                label.className = 'day-label';
+                label.textContent = day;
+
+                const select = document.createElement('select');
+                select.innerHTML = `<option value="">-- Select a Meal --</option>`;
+                meals.forEach(meal => {
+                    const selected = plannedMeals[day] === meal.name ? 'selected' : '';
+                    select.innerHTML += `<option value="${meal.name}" ${selected}>${meal.name}</option>`;
                 });
-            } catch (error) {
-                console.error("Save error:", error);
-            }
+
+                select.addEventListener('change', async (e) => {
+                    plannedMeals[day] = e.target.value;
+                    updateShoppingList();
+                    await saveData();
+                });
+
+                row.appendChild(label);
+                row.appendChild(select);
+                calendarDiv.appendChild(row);
+            });
         }
 
-        // ... (The rest of your logic stays exactly the same)
-        fetchFromCloud();
+        function renderMealLibrary() {
+            const libraryDiv = document.getElementById('meal-library');
+            libraryDiv.innerHTML = '';
+
+            meals.forEach(meal => {
+                const card = document.createElement('div');
+                card.className = 'meal-card';
+                
+                const totalProtein = meal.ingredients.reduce((sum, ing) => sum + (Number(ing.protein) || 0), 0).toFixed(1);
+                
+                let ingredientsHtml = meal.ingredients.map(ing => 
+                    `<li class="muted" style="padding: 0.2rem 0;">
+                        <span>${ing.item}</span> <span>(${ing.qty} qty)</span>
+                    </li>`
+                ).join('');
+
+                let actionsHtml = '';
+                if (meal.isCustom) {
+                    actionsHtml = `
+                        <div class="btn-group">
+                            <button class="btn-secondary" onclick="editMeal('${meal.name}')" style="padding: 0.5rem;">Edit</button>
+                            <button class="btn-danger" onclick="deleteMeal('${meal.name}')" style="padding: 0.5rem;">Delete</button>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div>
+                        <h3 style="margin-bottom: 0.25rem;">${meal.name}</h3>
+                        <p style="font-size: 0.9em; margin-top: 0; font-weight: bold; color: #444;">Total Protein: ${totalProtein}g</p>
+                        <ul style="border-top: 1px solid var(--accent-bg); padding-top: 0.5rem;">
+                            ${ingredientsHtml}
+                        </ul>
+                    </div>
+                    ${actionsHtml}
+                `;
+                libraryDiv.appendChild(card);
+            });
+        }
+
+        function updateShoppingList() {
+            const listDiv = document.getElementById('shopping-list');
+            listDiv.innerHTML = '';
+
+            const shoppingDict = {};
+            const servings = parseInt(document.getElementById('serving-multiplier').value) || 1;
+
+            Object.values(plannedMeals).forEach(mealName => {
+                if (!mealName) return;
+                const meal = meals.find(m => m.name === mealName);
+                if (meal) {
+                    meal.ingredients.forEach(ing => {
+                        const name = ing.item.charAt(0).toUpperCase() + ing.item.slice(1).toLowerCase();
+                        const totalQty = Number(ing.qty) * servings;
+                        
+                        if (shoppingDict[name]) {
+                            shoppingDict[name] += totalQty;
+                        } else {
+                            shoppingDict[name] = totalQty;
+                        }
+                    });
+                }
+            });
+
+            const sortedItems = Object.keys(shoppingDict).sort();
+
+            if (sortedItems.length === 0) {
+                listDiv.innerHTML = '<li>No meals planned yet.</li>';
+                return;
+            }
+
+            sortedItems.forEach(item => {
+                listDiv.innerHTML += `<li><strong>${item}</strong> <span class="muted">${shoppingDict[item].toFixed(2)} units</span></li>`;
+            });
+        }
+
+        // ==========================================
+        // CRUD ACTIONS & EVENT LISTENERS
+        // ==========================================
+        
+        // Adjust Servings Event
+        document.getElementById('serving-multiplier').addEventListener('input', updateShoppingList);
+
+        // Auto-Calculate Protein
+        document.getElementById('ingredient-inputs').addEventListener('input', (e) => {
+            if (e.target.classList.contains('ing-name') || e.target.classList.contains('ing-qty')) {
+                const row = e.target.closest('.ingredient-row');
+                const nameInput = row.querySelector('.ing-name').value.toLowerCase().trim();
+                const qtyInput = parseFloat(row.querySelector('.ing-qty').value) || 0;
+                const proteinInput = row.querySelector('.ing-protein');
+                
+                if (nutritionDB[nameInput] && nameInput !== "" && qtyInput > 0) {
+                    proteinInput.value = (nutritionDB[nameInput].proteinPerUnit * qtyInput).toFixed(1);
+                }
+            }
+        });
+
+        document.getElementById('add-ingredient-btn').addEventListener('click', () => {
+            const container = document.getElementById('ingredient-inputs');
+            const row = document.createElement('div');
+            row.className = 'ingredient-row';
+            row.innerHTML = `
+                <input type="text" class="ing-name" placeholder="Ingredient" required>
+                <input type="number" step="0.1" class="ing-qty" placeholder="Qty" required>
+                <input type="number" step="0.1" class="ing-protein" placeholder="Protein (g)" required>
+            `;
+            container.appendChild(row);
+        });
+
+        // Delete Meal
+        window.deleteMeal = async function(mealName) {
+            if(confirm(`Are you sure you want to delete ${mealName}?`)) {
+                meals = meals.filter(m => m.name !== mealName);
+                
+                // Clear from schedule if planned
+                for (const day in plannedMeals) {
+                    if (plannedMeals[day] === mealName) {
+                        plannedMeals[day] = "";
+                    }
+                }
+                
+                await saveData();
+                renderCalendar();
+                renderMealLibrary();
+                updateShoppingList();
+            }
+        };
+
+        // Edit Meal - Populates form
+        window.editMeal = function(mealName) {
+            const meal = meals.find(m => m.name === mealName);
+            if(!meal) return;
+            
+            isEditing = true;
+            editingMealName = mealName;
+            
+            document.getElementById('form-title').textContent = `Edit Meal: ${mealName}`;
+            document.getElementById('new-meal-name').value = meal.name;
+            document.getElementById('submit-meal-btn').textContent = "Update Meal";
+            document.getElementById('cancel-edit-btn').style.display = "block";
+            
+            const container = document.getElementById('ingredient-inputs');
+            container.innerHTML = ''; 
+            
+            meal.ingredients.forEach(ing => {
+                const row = document.createElement('div');
+                row.className = 'ingredient-row';
+                row.innerHTML = `
+                    <input type="text" class="ing-name" placeholder="Ingredient" value="${ing.item}" required>
+                    <input type="number" step="0.1" class="ing-qty" placeholder="Qty" value="${ing.qty}" required>
+                    <input type="number" step="0.1" class="ing-protein" placeholder="Protein (g)" value="${ing.protein}" required>
+                `;
+                container.appendChild(row);
+            });
+            
+            window.scrollTo({ top: document.getElementById('create-meal-form').offsetTop - 50, behavior: 'smooth' });
+        };
+
+        window.cancelEdit = function() {
+            isEditing = false;
+            editingMealName = null;
+            document.getElementById('form-title').textContent = "Create Custom Meal";
+            document.getElementById('submit-meal-btn').textContent = "Save Meal";
+            document.getElementById('cancel-edit-btn').style.display = "none";
+            document.getElementById('create-meal-form').reset();
+            
+            // Reset to 1 empty ingredient row
+            document.getElementById('ingredient-inputs').innerHTML = `
+                <div class="ingredient-row">
+                    <input type="text" class="ing-name" placeholder="Ingredient" required>
+                    <input type="number" step="0.1" class="ing-qty" placeholder="Qty" required>
+                    <input type="number" step="0.1" class="ing-protein" placeholder="Protein (g)" required>
+                </div>
+            `;
+        };
+
+        // Save / Update Meal
+        document.getElementById('create-meal-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('new-meal-name').value;
+            const ingredientRows = document.querySelectorAll('.ingredient-row');
+            
+            const newIngredients = [];
+            ingredientRows.forEach(row => {
+                newIngredients.push({
+                    item: row.querySelector('.ing-name').value,
+                    qty: parseFloat(row.querySelector('.ing-qty').value),
+                    protein: parseFloat(row.querySelector('.ing-protein').value)
+                });
+            });
+
+            const newMeal = { name: name, isCustom: true, ingredients: newIngredients };
+            
+            if (isEditing) {
+                const index = meals.findIndex(m => m.name === editingMealName);
+                if (index !== -1) meals[index] = newMeal;
+                
+                // Update schedule if name was changed
+                if (name !== editingMealName) {
+                    for (const day in plannedMeals) {
+                        if (plannedMeals[day] === editingMealName) {
+                            plannedMeals[day] = name;
+                        }
+                    }
+                }
+            } else {
+                meals.push(newMeal);
+            }
+            
+            await saveData();
+            cancelEdit(); // Resets the form and flags naturally
+            renderCalendar();
+            renderMealLibrary();
+            updateShoppingList();
+        });
+
+        // Start App
+        init();
     </script>
 </body>
 </html>
