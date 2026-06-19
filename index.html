@@ -15,6 +15,7 @@
             --btn-text: #FAF9F6;
             --font-serif: 'Georgia', serif;
             --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --success: #2e7d32;
         }
 
         body {
@@ -30,6 +31,19 @@
             border-bottom: 1px solid var(--border-color);
             padding: 2rem 1rem;
             text-align: center;
+            position: relative;
+        }
+
+        #sync-status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 0.8rem;
+            color: var(--success);
+            background: var(--accent-bg);
+            padding: 4px 8px;
+            border-radius: 12px;
+            display: none;
         }
 
         h1, h2, h3 {
@@ -66,6 +80,7 @@
             border: 1px solid var(--border-color);
             padding: 1.5rem;
             border-radius: 4px;
+            position: relative;
         }
 
         .section-header {
@@ -79,333 +94,4 @@
             width: 100%;
             padding: 0.75rem;
             margin-bottom: 1rem;
-            border: 1px solid var(--border-color);
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: var(--font-sans);
-            box-sizing: border-box;
-        }
-
-        button {
-            background-color: var(--btn-bg);
-            color: var(--btn-text);
-            border: none;
-            padding: 0.75rem 1.5rem;
-            font-size: 1rem;
-            cursor: pointer;
-            font-family: var(--font-sans);
-            transition: opacity 0.2s;
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        button:hover {
-            opacity: 0.8;
-        }
-
-        .btn-secondary {
-            background-color: var(--accent-bg);
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
-        }
-
-        /* Lists */
-        ul {
-            list-style-type: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        li {
-            padding: 0.5rem 0;
-            border-bottom: 1px solid var(--accent-bg);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        li:last-child {
-            border-bottom: none;
-        }
-
-        /* Specific Layouts */
-        .day-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 1rem;
-            gap: 1rem;
-        }
-
-        .day-label {
-            width: 100px;
-            font-weight: 600;
-        }
-
-        .meal-card {
-            border: 1px solid var(--border-color);
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .ingredient-row {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr;
-            gap: 0.5rem;
-        }
-    </style>
-</head>
-<body>
-
-    <header>
-        <h1>Meal Planner</h1>
-        <p>Trader Joe's Master List & Nutrition Dashboard</p>
-    </header>
-
-    <div class="container">
-        
-        <!-- WEEKLY PLANNER SECTION -->
-        <div class="section">
-            <h2 class="section-header">Weekly Calendar</h2>
-            <div id="calendar"></div>
-        </div>
-
-        <!-- SHOPPING LIST SECTION -->
-        <div class="section">
-            <h2 class="section-header">Master Shopping List</h2>
-            <p style="font-size: 0.9em; color: #555; margin-top: -10px;">Aggregated for Trader Joe's</p>
-            <ul id="shopping-list">
-                <!-- Generated via JS -->
-            </ul>
-        </div>
-
-        <!-- MEAL LIBRARY & NUTRITION -->
-        <div class="section full-width">
-            <h2 class="section-header">Meal Library & Nutrition Facts</h2>
-            <div id="meal-library" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;">
-                <!-- Generated via JS -->
-            </div>
-        </div>
-
-        <!-- CREATE CUSTOM MEAL SECTION -->
-        <div class="section full-width">
-            <h2 class="section-header">Create Custom Meal</h2>
-            <form id="create-meal-form">
-                <input type="text" id="new-meal-name" placeholder="Meal Name (e.g., Avocado Toast)" required>
-                
-                <h4>Ingredients</h4>
-                <div id="ingredient-inputs">
-                    <div class="ingredient-row">
-                        <input type="text" class="ing-name" placeholder="Ingredient (e.g., Bread)" required>
-                        <input type="number" step="0.1" class="ing-qty" placeholder="Qty" required>
-                        <input type="number" step="0.1" class="ing-protein" placeholder="Protein (g)" required>
-                    </div>
-                </div>
-                
-                <button type="button" class="btn-secondary" id="add-ingredient-btn" style="margin-bottom: 1rem;">+ Add Another Ingredient</button>
-                <button type="submit">Save Meal</button>
-            </form>
-        </div>
-
-    </div>
-
-    <script>
-        // Default meals loaded from your Excel file
-        let meals = [
-            {
-                name: "Utility Bowl",
-                ingredients: [
-                    { item: "Rice", qty: 0.84, protein: 4.2 },
-                    { item: "Sweet Potato", qty: 3.0, protein: 1.0 },
-                    { item: "Broccoli", qty: 3.0, protein: 3.0 },
-                    { item: "Ground Turkey", qty: 3.0, protein: 45.0 },
-                    { item: "Onion", qty: 3.0, protein: 0 },
-                    { item: "Garlic", qty: 1.5, protein: 0 }
-                ]
-            },
-            {
-                name: "Mexican Bowl",
-                ingredients: [
-                    { item: "Chicken", qty: 3.0, protein: 69.5 },
-                    { item: "Cheese", qty: 0.96, protein: 8.9 },
-                    { item: "Black Beans", qty: 3.0, protein: 48.0 },
-                    { item: "Peppers", qty: 3.0, protein: 0 },
-                    { item: "Onion", qty: 3.0, protein: 0 },
-                    { item: "Garlic", qty: 1.5, protein: 0 },
-                    { item: "Salsa", qty: 0.96, protein: 0 },
-                    { item: "Spinach", qty: 0.96, protein: 0 },
-                    { item: "Rice", qty: 0.42, protein: 2.1 },
-                    { item: "Canned Corn", qty: 0.96, protein: 0 }
-                ]
-            },
-            {
-                name: "Greek Bowl",
-                ingredients: [
-                    { item: "CousCous", qty: 1.5, protein: 0 },
-                    { item: "Chicken", qty: 3.0, protein: 69.5 },
-                    { item: "Broccoli", qty: 0.96, protein: 0.96 },
-                    { item: "Feta", qty: 1.5, protein: 0 },
-                    { item: "Dill", qty: 0.96, protein: 0 },
-                    { item: "Chick Peas", qty: 1.5, protein: 5.25 }
-                ]
-            }
-        ];
-
-        // Load custom meals from local storage if available
-        const savedMeals = localStorage.getItem('customMeals');
-        if (savedMeals) {
-            meals = meals.concat(JSON.parse(savedMeals));
-        }
-
-        const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-        let plannedMeals = {};
-
-        function init() {
-            renderCalendar();
-            renderMealLibrary();
-            updateShoppingList();
-        }
-
-        function renderCalendar() {
-            const calendarDiv = document.getElementById('calendar');
-            calendarDiv.innerHTML = '';
-
-            days.forEach(day => {
-                const row = document.createElement('div');
-                row.className = 'day-row';
-
-                const label = document.createElement('div');
-                label.className = 'day-label';
-                label.textContent = day;
-
-                const select = document.createElement('select');
-                select.innerHTML = `<option value="">-- Select a Meal --</option>`;
-                meals.forEach(meal => {
-                    select.innerHTML += `<option value="${meal.name}">${meal.name}</option>`;
-                });
-
-                select.addEventListener('change', (e) => {
-                    plannedMeals[day] = e.target.value;
-                    updateShoppingList();
-                });
-
-                row.appendChild(label);
-                row.appendChild(select);
-                calendarDiv.appendChild(row);
-            });
-        }
-
-        function renderMealLibrary() {
-            const libraryDiv = document.getElementById('meal-library');
-            libraryDiv.innerHTML = '';
-
-            meals.forEach(meal => {
-                const card = document.createElement('div');
-                card.className = 'meal-card';
-                
-                const totalProtein = meal.ingredients.reduce((sum, ing) => sum + (Number(ing.protein) || 0), 0).toFixed(1);
-                
-                let ingredientsHtml = meal.ingredients.map(ing => 
-                    `<li style="font-size: 0.9em; padding: 0.2rem 0;">${ing.item} <span style="color:#666;">(${ing.qty} qty)</span></li>`
-                ).join('');
-
-                card.innerHTML = `
-                    <h3 style="margin-bottom: 0.5rem;">${meal.name}</h3>
-                    <p style="font-size: 0.9em; margin-top: 0; font-weight: bold;">Total Protein: ${totalProtein}g</p>
-                    <ul style="border-top: 1px solid var(--accent-bg); padding-top: 0.5rem;">
-                        ${ingredientsHtml}
-                    </ul>
-                `;
-                libraryDiv.appendChild(card);
-            });
-        }
-
-        function updateShoppingList() {
-            const listDiv = document.getElementById('shopping-list');
-            listDiv.innerHTML = '';
-
-            const shoppingDict = {};
-
-            Object.values(plannedMeals).forEach(mealName => {
-                if (!mealName) return;
-                const meal = meals.find(m => m.name === mealName);
-                if (meal) {
-                    meal.ingredients.forEach(ing => {
-                        // Standardize capitalization for grouping
-                        const name = ing.item.charAt(0).toUpperCase() + ing.item.slice(1).toLowerCase();
-                        if (shoppingDict[name]) {
-                            shoppingDict[name] += Number(ing.qty);
-                        } else {
-                            shoppingDict[name] = Number(ing.qty);
-                        }
-                    });
-                }
-            });
-
-            const sortedItems = Object.keys(shoppingDict).sort();
-
-            if (sortedItems.length === 0) {
-                listDiv.innerHTML = '<li>No meals planned yet.</li>';
-                return;
-            }
-
-            sortedItems.forEach(item => {
-                listDiv.innerHTML += `<li><strong>${item}</strong> <span>${shoppingDict[item].toFixed(2)} qty</span></li>`;
-            });
-        }
-
-        // Handle adding new rows to the custom meal form
-        document.getElementById('add-ingredient-btn').addEventListener('click', () => {
-            const container = document.getElementById('ingredient-inputs');
-            const row = document.createElement('div');
-            row.className = 'ingredient-row';
-            row.innerHTML = `
-                <input type="text" class="ing-name" placeholder="Ingredient" required>
-                <input type="number" step="0.1" class="ing-qty" placeholder="Qty" required>
-                <input type="number" step="0.1" class="ing-protein" placeholder="Protein (g)" required>
-            `;
-            container.appendChild(row);
-        });
-
-        // Handle saving a custom meal
-        document.getElementById('create-meal-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            const name = document.getElementById('new-meal-name').value;
-            const ingredientRows = document.querySelectorAll('.ingredient-row');
-            
-            const newIngredients = [];
-            ingredientRows.forEach(row => {
-                const ingName = row.querySelector('.ing-name').value;
-                const ingQty = row.querySelector('.ing-qty').value;
-                const ingProtein = row.querySelector('.ing-protein').value;
-                
-                newIngredients.push({
-                    item: ingName,
-                    qty: parseFloat(ingQty),
-                    protein: parseFloat(ingProtein)
-                });
-            });
-
-            const newMeal = { name: name, ingredients: newIngredients };
-            
-            // Add to runtime array
-            meals.push(newMeal);
-            
-            // Save to local storage so it persists across refreshes
-            let customMeals = JSON.parse(localStorage.getItem('customMeals')) || [];
-            customMeals.push(newMeal);
-            localStorage.setItem('customMeals', JSON.stringify(customMeals));
-
-            // Reset UI
-            document.getElementById('create-meal-form').reset();
-            
-            // Re-render
-            renderCalendar();
-            renderMealLibrary();
-        });
-
-        // Initialize App
-        init();
-    </script>
-</body>
-</html>
+            border: 1px solid var(--border-
