@@ -3,67 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meal Planning Dashboard</title>
+    <title>Meal Planner</title>
     <style>
-        :root { --bg-color: #FAF9F6; --text-color: #1F1F1E; --border-color: #D3CFC2; --accent-bg: #EAE8DF; --btn-bg: #1F1F1E; --btn-text: #FAF9F6; --success: #2e7d32; --error: #c62828; }
-        body { background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; margin: 0; padding: 20px; }
-        #sync-status { padding: 10px; margin-bottom: 20px; border-radius: 5px; font-weight: bold; display: none; }
-        /* Include the rest of your CSS from the previous version here */
+        /* (Keep your existing CSS here) */
     </style>
 </head>
 <body>
     <div id="sync-status"></div>
-    <h1>Meal Planner</h1>
-    
     <script>
         const BIN_ID = "6a34ae6bf5f4af5e290c7fbb"; 
-        // Using your Master Key
         const MASTER_KEY = "$2a$10$f2TkUBvxPmf1nty6gYbGy.ww8tUG5Ox/YS8rvFI5bW6pqjuBdj4gW"; 
         const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
-        async function saveToCloud() {
-            try {
-                showSync("↻ Saving...");
-                const response = await fetch(API_URL, {
-                    method: 'PUT',
-                    headers: { 
-                        'Content-Type': 'application/json', 
-                        'X-Master-Key': MASTER_KEY 
-                    },
-                    body: JSON.stringify(cloudData)
-                });
-                if (!response.ok) throw new Error("Status: " + response.status);
-                showSync("☁️ Saved to Cloud");
-            } catch (error) {
-                console.error(error);
-                showSync("⚠️ Save Failed: " + error.message, true);
-            }
-        }
-        
+        // SAFETY SHIELD: Initialize with defaults immediately
+        let cloudData = { 
+            customMeals: [
+                { name: "Utility Bowl", servings: 6, ingredients: [{item: "Rice", qty: 0.84, unit: "cups", protein: 4.2}] },
+                { name: "Mexican Bowl", servings: 6, ingredients: [{item: "Chicken", qty: 3, unit: "lbs", protein: 69.5}] }
+            ], 
+            plannedMeals: {} 
+        };
+
         async function fetchFromCloud() {
             try {
-                showSync("↻ Syncing...");
-                const response = await fetch(API_URL, { 
-                    headers: { 'X-Master-Key': MASTER_KEY } 
-                });
+                const response = await fetch(API_URL, { headers: { 'X-Master-Key': MASTER_KEY } });
                 const result = await response.json();
-                cloudData = result.record;
+                
+                // If cloud data exists and is valid, use it
+                if (result.record && result.record.customMeals) {
+                    cloudData = result.record;
+                } else {
+                    // Otherwise, force save the defaults
+                    saveToCloud();
+                }
                 renderAll();
                 showSync("☁️ Cloud Synced");
             } catch (error) {
+                renderAll(); // Fallback to local default state
                 showSync("⚠️ Offline Mode", true);
             }
         }
-        
-        function showSync(msg, isError = false) {
-            const status = document.getElementById('sync-status');
-            status.textContent = msg;
-            status.style.display = 'block';
-            status.style.backgroundColor = isError ? '#feebee' : '#e8f5e9';
-            status.style.color = isError ? 'var(--error)' : 'var(--success)';
+
+        async function saveToCloud() {
+            try {
+                // Ensure data structure exists before saving
+                if(!cloudData.customMeals) cloudData.customMeals = [];
+                if(!cloudData.plannedMeals) cloudData.plannedMeals = {};
+                
+                await fetch(API_URL, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': MASTER_KEY },
+                    body: JSON.stringify(cloudData)
+                });
+            } catch (error) {
+                console.error("Save error:", error);
+            }
         }
-        
-        // ... (Keep the rest of your JS functions from the previous code block)
+
+        // ... (The rest of your logic stays exactly the same)
+        fetchFromCloud();
     </script>
 </body>
 </html>
