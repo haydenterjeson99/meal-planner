@@ -38,6 +38,7 @@
             font-family: var(--font-serif);
             font-weight: normal;
             margin-top: 0;
+            margin-bottom: 0;
         }
 
         h1 {
@@ -155,8 +156,13 @@
         }
 
         .day-label {
-            width: 100px;
+            flex: 0 0 100px;
             font-weight: 600;
+        }
+        
+        .day-row select {
+            flex: 1;
+            margin-bottom: 0;
         }
 
         .meal-card {
@@ -170,11 +176,22 @@
 
         .ingredient-row {
             display: grid;
-            grid-template-columns: 2fr 1fr 1fr;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
             gap: 0.5rem;
             align-items: start;
+            margin-bottom: 0.5rem;
         }
         
+        .form-top-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .form-top-row input {
+            margin-bottom: 0;
+        }
+
         /* Utility */
         .muted {
             font-size: 0.9em;
@@ -186,7 +203,6 @@
 
     <header>
         <h1>Meal Planner</h1>
-        <p>Trader Joe's Master List & Nutrition Dashboard</p>
     </header>
 
     <div class="container">
@@ -199,15 +215,7 @@
 
         <!-- SHOPPING LIST SECTION -->
         <div class="section">
-            <div class="section-header">
-                <h2 style="margin: 0;">Master Shopping List</h2>
-            </div>
-            
-            <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem; background: var(--accent-bg); padding: 10px; border-radius: 4px;">
-                <label for="serving-multiplier" style="font-weight: bold; white-space: nowrap;">Household Servings:</label>
-                <input type="number" id="serving-multiplier" value="1" min="1" style="margin-bottom: 0; padding: 0.5rem;">
-            </div>
-
+            <h2 class="section-header">Master Shopping List</h2>
             <ul id="shopping-list">
                 <!-- Generated via JS -->
             </ul>
@@ -225,13 +233,17 @@
         <div class="section full-width">
             <h2 class="section-header" id="form-title">Create Custom Meal</h2>
             <form id="create-meal-form">
-                <input type="text" id="new-meal-name" placeholder="Meal Name (e.g., Avocado Toast)" required>
+                <div class="form-top-row">
+                    <input type="text" id="new-meal-name" placeholder="Meal Name (e.g., Avocado Toast)" style="flex: 2;" required>
+                    <input type="number" id="new-meal-servings" placeholder="Servings Produced (e.g., 2)" min="1" style="flex: 1;" required>
+                </div>
                 
-                <h4 style="margin-bottom: 0.5rem;">Ingredients <span class="muted" style="font-weight: normal;">(Protein auto-calculates for known items)</span></h4>
+                <h4 style="margin-bottom: 0.5rem; margin-top: 1rem;">Ingredients <span class="muted" style="font-weight: normal;">(Protein auto-calculates for known items)</span></h4>
                 <div id="ingredient-inputs">
                     <div class="ingredient-row">
                         <input type="text" class="ing-name" placeholder="Ingredient (e.g., Chicken)" required>
                         <input type="number" step="0.1" class="ing-qty" placeholder="Qty" required>
+                        <input type="text" class="ing-unit" placeholder="Unit (e.g., lbs, cups)" required>
                         <input type="number" step="0.1" class="ing-protein" placeholder="Protein (g)" required>
                     </div>
                 </div>
@@ -248,17 +260,17 @@
 
     <script>
         // ==========================================
-        // CONFIGURATION (Fill these in for Cloud Sync)
+        // CONFIGURATION
         // ==========================================
-        const JSONBIN_BIN_ID = ''; // e.g., '65b12345...'
-        const JSONBIN_MASTER_KEY = ''; // e.g., '$2a$10$...'
+        const JSONBIN_BIN_ID = ''; 
+        const JSONBIN_MASTER_KEY = ''; 
         
         // ==========================================
         // STATE & NUTRITION DATABASE
         // ==========================================
         const nutritionDB = {
-            "chicken": { proteinPerUnit: 23.1 },  // per oz
-            "ground turkey": { proteinPerUnit: 45.0 }, // per serving
+            "chicken": { proteinPerUnit: 23.1 },  
+            "ground turkey": { proteinPerUnit: 45.0 }, 
             "rice": { proteinPerUnit: 4.2 },
             "black beans": { proteinPerUnit: 16.0 },
             "broccoli": { proteinPerUnit: 3.0 },
@@ -268,40 +280,43 @@
 
         const defaultMeals = [
             {
-                name: "Utility Bowl", isCustom: false,
+                name: "Utility Bowl",
+                servings: 1,
                 ingredients: [
-                    { item: "Rice", qty: 0.84, protein: 4.2 },
-                    { item: "Sweet Potato", qty: 3.0, protein: 1.0 },
-                    { item: "Broccoli", qty: 3.0, protein: 3.0 },
-                    { item: "Ground Turkey", qty: 3.0, protein: 45.0 },
-                    { item: "Onion", qty: 3.0, protein: 0 },
-                    { item: "Garlic", qty: 1.5, protein: 0 }
+                    { item: "Rice", qty: 1, unit: "cup", protein: 4.2 },
+                    { item: "Sweet Potato", qty: 3.0, unit: "oz", protein: 1.0 },
+                    { item: "Broccoli", qty: 3.0, unit: "oz", protein: 3.0 },
+                    { item: "Ground Turkey", qty: 1, unit: "lb", protein: 45.0 },
+                    { item: "Onion", qty: 1, unit: "whole", protein: 0 },
+                    { item: "Garlic", qty: 2, unit: "cloves", protein: 0 }
                 ]
             },
             {
-                name: "Mexican Bowl", isCustom: false,
+                name: "Mexican Bowl",
+                servings: 2,
                 ingredients: [
-                    { item: "Chicken", qty: 3.0, protein: 69.5 },
-                    { item: "Cheese", qty: 0.96, protein: 8.9 },
-                    { item: "Black Beans", qty: 3.0, protein: 48.0 },
-                    { item: "Peppers", qty: 3.0, protein: 0 },
-                    { item: "Onion", qty: 3.0, protein: 0 },
-                    { item: "Garlic", qty: 1.5, protein: 0 },
-                    { item: "Salsa", qty: 0.96, protein: 0 },
-                    { item: "Spinach", qty: 0.96, protein: 0 },
-                    { item: "Rice", qty: 0.42, protein: 2.1 },
-                    { item: "Canned Corn", qty: 0.96, protein: 0 }
+                    { item: "Chicken", qty: 1, unit: "lb", protein: 69.5 },
+                    { item: "Cheese", qty: 0.5, unit: "cups", protein: 8.9 },
+                    { item: "Black Beans", qty: 1, unit: "can", protein: 48.0 },
+                    { item: "Peppers", qty: 2, unit: "whole", protein: 0 },
+                    { item: "Onion", qty: 1, unit: "whole", protein: 0 },
+                    { item: "Garlic", qty: 2, unit: "cloves", protein: 0 },
+                    { item: "Salsa", qty: 0.5, unit: "cups", protein: 0 },
+                    { item: "Spinach", qty: 2, unit: "cups", protein: 0 },
+                    { item: "Rice", qty: 1, unit: "cup", protein: 4.2 },
+                    { item: "Canned Corn", qty: 1, unit: "can", protein: 0 }
                 ]
             },
             {
-                name: "Greek Bowl", isCustom: false,
+                name: "Greek Bowl",
+                servings: 1,
                 ingredients: [
-                    { item: "CousCous", qty: 1.5, protein: 0 },
-                    { item: "Chicken", qty: 3.0, protein: 69.5 },
-                    { item: "Broccoli", qty: 0.96, protein: 0.96 },
-                    { item: "Feta", qty: 1.5, protein: 0 },
-                    { item: "Dill", qty: 0.96, protein: 0 },
-                    { item: "Chick Peas", qty: 1.5, protein: 5.25 }
+                    { item: "CousCous", qty: 1, unit: "cup", protein: 0 },
+                    { item: "Chicken", qty: 0.5, unit: "lbs", protein: 34.7 },
+                    { item: "Broccoli", qty: 1, unit: "cup", protein: 3.0 },
+                    { item: "Feta", qty: 0.25, unit: "cups", protein: 4.0 },
+                    { item: "Dill", qty: 1, unit: "tbsp", protein: 0 },
+                    { item: "Chick Peas", qty: 0.5, unit: "can", protein: 5.25 }
                 ]
             }
         ];
@@ -314,7 +329,7 @@
         let editingMealName = null;
 
         // ==========================================
-        // DATA SYNC LOGIC (Cloud + Local Fallback)
+        // DATA SYNC LOGIC
         // ==========================================
         async function init() {
             await loadData();
@@ -325,14 +340,12 @@
 
         async function saveData() {
             const dataToSave = {
-                meals: meals.filter(m => m.isCustom), // Only save custom meals
+                meals: meals, 
                 plannedMeals: plannedMeals
             };
             
-            // 1. Always save to local storage (Offline Fallback)
             localStorage.setItem('mealPlannerData', JSON.stringify(dataToSave));
             
-            // 2. Try saving to Cloud if keys exist
             if (JSONBIN_BIN_ID && JSONBIN_MASTER_KEY) {
                 try {
                     const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
@@ -353,7 +366,6 @@
         async function loadData() {
             let data = null;
             
-            // 1. Try fetching from Cloud
             if (JSONBIN_BIN_ID && JSONBIN_MASTER_KEY) {
                 try {
                     const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
@@ -368,15 +380,13 @@
                 }
             }
             
-            // 2. Fallback to Local Storage
             if (!data) {
                 const localData = localStorage.getItem('mealPlannerData');
                 if (localData) data = JSON.parse(localData);
             }
             
-            // 3. Apply Data
             if (data) {
-                if (data.meals) meals = [...defaultMeals, ...data.meals];
+                if (data.meals && data.meals.length > 0) meals = data.meals;
                 if (data.plannedMeals) plannedMeals = data.plannedMeals;
             }
         }
@@ -427,29 +437,25 @@
                 
                 let ingredientsHtml = meal.ingredients.map(ing => 
                     `<li class="muted" style="padding: 0.2rem 0;">
-                        <span>${ing.item}</span> <span>(${ing.qty} qty)</span>
+                        <span>${ing.item}</span> <span>(${ing.qty} ${ing.unit})</span>
                     </li>`
                 ).join('');
 
-                let actionsHtml = '';
-                if (meal.isCustom) {
-                    actionsHtml = `
-                        <div class="btn-group">
-                            <button class="btn-secondary" onclick="editMeal('${meal.name}')" style="padding: 0.5rem;">Edit</button>
-                            <button class="btn-danger" onclick="deleteMeal('${meal.name}')" style="padding: 0.5rem;">Delete</button>
-                        </div>
-                    `;
-                }
-
                 card.innerHTML = `
                     <div>
-                        <h3 style="margin-bottom: 0.25rem;">${meal.name}</h3>
+                        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                            <h3 style="margin-bottom: 0.25rem;">${meal.name}</h3>
+                            <span style="font-size: 0.85em; background: var(--accent-bg); padding: 2px 6px; border-radius: 4px;">Yields: ${meal.servings || 1}</span>
+                        </div>
                         <p style="font-size: 0.9em; margin-top: 0; font-weight: bold; color: #444;">Total Protein: ${totalProtein}g</p>
                         <ul style="border-top: 1px solid var(--accent-bg); padding-top: 0.5rem;">
                             ${ingredientsHtml}
                         </ul>
                     </div>
-                    ${actionsHtml}
+                    <div class="btn-group">
+                        <button class="btn-secondary" onclick="editMeal('${meal.name}')" style="padding: 0.5rem;">Edit</button>
+                        <button class="btn-danger" onclick="deleteMeal('${meal.name}')" style="padding: 0.5rem;">Delete</button>
+                    </div>
                 `;
                 libraryDiv.appendChild(card);
             });
@@ -460,7 +466,6 @@
             listDiv.innerHTML = '';
 
             const shoppingDict = {};
-            const servings = parseInt(document.getElementById('serving-multiplier').value) || 1;
 
             Object.values(plannedMeals).forEach(mealName => {
                 if (!mealName) return;
@@ -468,37 +473,39 @@
                 if (meal) {
                     meal.ingredients.forEach(ing => {
                         const name = ing.item.charAt(0).toUpperCase() + ing.item.slice(1).toLowerCase();
-                        const totalQty = Number(ing.qty) * servings;
+                        const unit = (ing.unit || "").toLowerCase().trim();
+                        const key = name + "|" + unit; // Group by item AND unit type
                         
-                        if (shoppingDict[name]) {
-                            shoppingDict[name] += totalQty;
+                        if (shoppingDict[key]) {
+                            shoppingDict[key].qty += Number(ing.qty);
                         } else {
-                            shoppingDict[name] = totalQty;
+                            shoppingDict[key] = {
+                                name: name,
+                                unit: unit,
+                                qty: Number(ing.qty)
+                            };
                         }
                     });
                 }
             });
 
-            const sortedItems = Object.keys(shoppingDict).sort();
+            const sortedKeys = Object.keys(shoppingDict).sort();
 
-            if (sortedItems.length === 0) {
+            if (sortedKeys.length === 0) {
                 listDiv.innerHTML = '<li>No meals planned yet.</li>';
                 return;
             }
 
-            sortedItems.forEach(item => {
-                listDiv.innerHTML += `<li><strong>${item}</strong> <span class="muted">${shoppingDict[item].toFixed(2)} units</span></li>`;
+            sortedKeys.forEach(key => {
+                const item = shoppingDict[key];
+                listDiv.innerHTML += `<li><strong>${item.name}</strong> <span class="muted">${item.qty % 1 === 0 ? item.qty : item.qty.toFixed(2)} ${item.unit}</span></li>`;
             });
         }
 
         // ==========================================
         // CRUD ACTIONS & EVENT LISTENERS
         // ==========================================
-        
-        // Adjust Servings Event
-        document.getElementById('serving-multiplier').addEventListener('input', updateShoppingList);
 
-        // Auto-Calculate Protein
         document.getElementById('ingredient-inputs').addEventListener('input', (e) => {
             if (e.target.classList.contains('ing-name') || e.target.classList.contains('ing-qty')) {
                 const row = e.target.closest('.ingredient-row');
@@ -519,17 +526,16 @@
             row.innerHTML = `
                 <input type="text" class="ing-name" placeholder="Ingredient" required>
                 <input type="number" step="0.1" class="ing-qty" placeholder="Qty" required>
+                <input type="text" class="ing-unit" placeholder="Unit (e.g., lbs, cups)" required>
                 <input type="number" step="0.1" class="ing-protein" placeholder="Protein (g)" required>
             `;
             container.appendChild(row);
         });
 
-        // Delete Meal
         window.deleteMeal = async function(mealName) {
             if(confirm(`Are you sure you want to delete ${mealName}?`)) {
                 meals = meals.filter(m => m.name !== mealName);
                 
-                // Clear from schedule if planned
                 for (const day in plannedMeals) {
                     if (plannedMeals[day] === mealName) {
                         plannedMeals[day] = "";
@@ -543,7 +549,6 @@
             }
         };
 
-        // Edit Meal - Populates form
         window.editMeal = function(mealName) {
             const meal = meals.find(m => m.name === mealName);
             if(!meal) return;
@@ -553,6 +558,7 @@
             
             document.getElementById('form-title').textContent = `Edit Meal: ${mealName}`;
             document.getElementById('new-meal-name').value = meal.name;
+            document.getElementById('new-meal-servings').value = meal.servings || 1;
             document.getElementById('submit-meal-btn').textContent = "Update Meal";
             document.getElementById('cancel-edit-btn').style.display = "block";
             
@@ -565,6 +571,7 @@
                 row.innerHTML = `
                     <input type="text" class="ing-name" placeholder="Ingredient" value="${ing.item}" required>
                     <input type="number" step="0.1" class="ing-qty" placeholder="Qty" value="${ing.qty}" required>
+                    <input type="text" class="ing-unit" placeholder="Unit (e.g., lbs, cups)" value="${ing.unit || ''}" required>
                     <input type="number" step="0.1" class="ing-protein" placeholder="Protein (g)" value="${ing.protein}" required>
                 `;
                 container.appendChild(row);
@@ -581,21 +588,21 @@
             document.getElementById('cancel-edit-btn').style.display = "none";
             document.getElementById('create-meal-form').reset();
             
-            // Reset to 1 empty ingredient row
             document.getElementById('ingredient-inputs').innerHTML = `
                 <div class="ingredient-row">
                     <input type="text" class="ing-name" placeholder="Ingredient" required>
                     <input type="number" step="0.1" class="ing-qty" placeholder="Qty" required>
+                    <input type="text" class="ing-unit" placeholder="Unit (e.g., lbs, cups)" required>
                     <input type="number" step="0.1" class="ing-protein" placeholder="Protein (g)" required>
                 </div>
             `;
         };
 
-        // Save / Update Meal
         document.getElementById('create-meal-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const name = document.getElementById('new-meal-name').value;
+            const servings = parseInt(document.getElementById('new-meal-servings').value) || 1;
             const ingredientRows = document.querySelectorAll('.ingredient-row');
             
             const newIngredients = [];
@@ -603,17 +610,17 @@
                 newIngredients.push({
                     item: row.querySelector('.ing-name').value,
                     qty: parseFloat(row.querySelector('.ing-qty').value),
+                    unit: row.querySelector('.ing-unit').value,
                     protein: parseFloat(row.querySelector('.ing-protein').value)
                 });
             });
 
-            const newMeal = { name: name, isCustom: true, ingredients: newIngredients };
+            const newMeal = { name: name, servings: servings, ingredients: newIngredients };
             
             if (isEditing) {
                 const index = meals.findIndex(m => m.name === editingMealName);
                 if (index !== -1) meals[index] = newMeal;
                 
-                // Update schedule if name was changed
                 if (name !== editingMealName) {
                     for (const day in plannedMeals) {
                         if (plannedMeals[day] === editingMealName) {
@@ -626,7 +633,7 @@
             }
             
             await saveData();
-            cancelEdit(); // Resets the form and flags naturally
+            cancelEdit(); 
             renderCalendar();
             renderMealLibrary();
             updateShoppingList();
